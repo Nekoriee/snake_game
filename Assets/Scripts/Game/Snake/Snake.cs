@@ -77,6 +77,7 @@ public class Snake
     public void SetHeading(Heading heading)
     {
         bodyList[0].SetHeading(heading);
+        gameDirector.audioController.PlaySound("Sound_Snake_Turn");
     }
 
     public SnakeState GetState()
@@ -175,18 +176,23 @@ public class Snake
                 {
                     case FoodType.normal:
                         SetState(SnakeState.normal);
+                        gameDirector.audioController.PlaySound("Sound_Apple_Normal");
                         break;
                     case FoodType.burn:
                         SetState(SnakeState.burn);
+                        gameDirector.audioController.PlaySound("Sound_Apple_Burn");
                         break;
                     case FoodType.freeze:
                         SetState(SnakeState.freeze);
+                        gameDirector.audioController.PlaySound("Sound_Apple_Freeze");
                         break;
                     case FoodType.golden:
                         SetState(SnakeState.gold);
+                        gameDirector.audioController.PlaySound("Sound_Apple_Gold");
                         break;
                     case FoodType.ghost:
                         SetState(SnakeState.ghost);
+                        gameDirector.audioController.PlaySound("Sound_Apple_Ghost");
                         break;
                     default:
                         break;
@@ -205,6 +211,7 @@ public class Snake
 
             gameDirector.UpdateTiles();
             if (foodEaten) gameDirector.CreateFood();
+            gameDirector.audioController.PlaySound("Sound_Snake_Move");
 
             return true;
         }
