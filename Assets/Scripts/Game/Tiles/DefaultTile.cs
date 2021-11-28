@@ -12,11 +12,11 @@ public class DefaultTile : Tile
     private GameObject foodObject;
     private Object foodPrefab;
 
-    public DefaultTile(Vector3 pos, Transform parent, GameDirector gameDirector)
+    public DefaultTile(Vector3 pos, Transform parent, GameDirector gameDirector, Object prefab)
     {
-        Object prefab = UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Prefabs/Game/Tiles/DefaultTile.prefab", typeof(Object));
         gameObject = GameObject.Instantiate(prefab) as GameObject;
         gameObject.transform.position = pos;
+        gameObject.transform.rotation = Quaternion.Euler(90 * Random.Range(0, 5), 270, 90);
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");

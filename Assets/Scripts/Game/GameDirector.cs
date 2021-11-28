@@ -37,11 +37,13 @@ public class GameDirector : MonoBehaviour
             for (int j = 0; j < cntTiles_H; j++)
             {
                 Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-                playField.Add(pos , new DefaultTile(pos, transform, this));
+                playField.Add(pos , new DefaultTile(pos, transform, this, prefabList["BaseTile"]));
             }
         }
 
         snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+
+        snake.SetSpeedMultiplier(1f);
     }
 
     public void ChangeGameState(GameState state)
@@ -283,8 +285,11 @@ public class GameDirector : MonoBehaviour
 
     private void Awake()
     {
+        Application.targetFrameRate = 120;
+
         prefabList.Add("BaseSprite", UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Prefabs/Game/BaseSprite.prefab", typeof(Object)));
-        
+        prefabList.Add("BaseTile", UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Prefabs/Game/BaseTile.prefab", typeof(Object)));
+
         foodChance.Add("burn", 0.45f);
         foodChance.Add("freeze", 0.3f);
         foodChance.Add("gold", 0.15f);

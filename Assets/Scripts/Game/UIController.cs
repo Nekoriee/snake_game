@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class UIController : MonoBehaviour
@@ -23,7 +22,7 @@ public class UIController : MonoBehaviour
 
     public IEnumerator PauseAnim()
     {
-        while (gameDirector.GetGameState() == GameState.paused)
+        while (true)
         {
             pause.alpha = 1f - pause.alpha;
             yield return new WaitForSecondsRealtime(0.5f);
@@ -43,6 +42,7 @@ public class UIController : MonoBehaviour
 
     public void StopPause()
     {
+        StopAllCoroutines();
         pause.alpha = 0f;
     }
 

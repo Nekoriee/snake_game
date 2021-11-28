@@ -56,7 +56,8 @@ public class Snake
 
     public void SetSpeedMultiplier(float multiplier)
     {
-        currentSpeed = speed;
+        speedMultiplier = multiplier;
+        currentSpeed = speed * speedMultiplier;
     }
 
     public float GetSpeedMultiplier()
