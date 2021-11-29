@@ -29,6 +29,7 @@ public class GameDirector : MonoBehaviour
     private GameState gameState = GameState.game;
 
     private Dictionary<string, Object> prefabList = new Dictionary<string, Object>();
+    public TileInfo tileInfo;
 
     private void Create_DefaultField()
     {
@@ -38,6 +39,41 @@ public class GameDirector : MonoBehaviour
             {
                 Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
                 playField.Add(pos , new DefaultTile(pos, transform, this, prefabList["BaseTile"]));
+            }
+        }
+
+        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+
+        snake.SetSpeedMultiplier(1f);
+    }
+
+    private void Create_DebugField()
+    {
+        for (int i = 0; i < cntTiles_V; i++)
+        {
+            for (int j = 0; j < cntTiles_H; j++)
+            {
+                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
+                
+                playField.Add(pos, new TileStatic(pos, "sand", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+            }
+        }
+
+        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+
+        snake.SetSpeedMultiplier(1f);
+    }
+
+    private void Create_WaterField()
+    {
+        for (int i = 0; i < cntTiles_V; i++)
+        {
+            for (int j = 0; j < cntTiles_H; j++)
+            {
+                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
+
+                playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+                StartCoroutine(playField[pos].PlayAnimation());
             }
         }
 
@@ -69,17 +105,42 @@ public class GameDirector : MonoBehaviour
         ui.UpdateCurrentScore(currentScore.ToString());
         ui.UpdateGoalScore(goalScore.ToString());
         if (musicOn == true) audioController.PlayMusic();
+        snakeHeadingBeforeMove = snake.GetHeading();
         while (gameState != GameState.gameover)
         {
-            snakeHeadingBeforeMove = snake.GetHeading();
             yield return new WaitForSeconds(1 / snake.GetSpeed());
-            if (!snake.Move() && snake.GetState() != SnakeState.gold )
+            if (!snake.Move())
             {
-                audioController.PlaySound("Sound_Menu_Gameover");
-                StopGame();
+                if (snake.GetState() != SnakeState.gold)
+                {
+                    audioController.PlaySound("Sound_Menu_Gameover");
+                    StopGame();
+                }
+                else
+                {
+                    Vector3 headPos = snake.GetHeadPos();
+                    bool gameOver = true;
+                    for (int i = (int)headPos.x - 1; i <= (int)headPos.x + 1; i++)
+                    {
+                        for (int j = (int)headPos.y - 1; j <= (int)headPos.y + 1; j++)
+                        {
+                            Vector3 tile = new Vector3(i, j, 0);
+                            if (!IsTileAWall(tile) && !IsTileOccupied(tile))
+                            {
+                                gameOver = false;
+                                break;
+                            }
+                        }
+                        if (!gameOver) break;
+                    }
+                    if (gameOver)
+                    {
+                        audioController.PlaySound("Sound_Menu_Gameover");
+                        StopGame();
+                    }
+                }
             }
-                
-            yield return null;
+            else snakeHeadingBeforeMove = snake.GetHeading();
         }
     }
 
@@ -103,19 +164,19 @@ public class GameDirector : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.S && snakeHeadingBeforeMove != Heading.N) snake.SetHeading(Heading.N);
+            if (snakeHeadingBeforeMove != Heading.S) snake.SetHeading(Heading.N);
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.W && snakeHeadingBeforeMove != Heading.E) snake.SetHeading(Heading.E);
+            if (snakeHeadingBeforeMove != Heading.W) snake.SetHeading(Heading.E);
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.N && snakeHeadingBeforeMove != Heading.S) snake.SetHeading(Heading.S);
+            if (snakeHeadingBeforeMove != Heading.N) snake.SetHeading(Heading.S);
         }
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.E && snakeHeadingBeforeMove != Heading.W) snake.SetHeading(Heading.W);
+            if (snakeHeadingBeforeMove != Heading.E) snake.SetHeading(Heading.W);
         }
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Pause))
         {
@@ -229,7 +290,7 @@ public class GameDirector : MonoBehaviour
         if (playField.ContainsKey(tilePos))
         {
             if (playField[tilePos].GetTileState() == TileState.free &&
-                playField[tilePos].GetTileType() == TileType.ground) return true;
+                playField[tilePos].GetTileType() != TileType.wall) return true;
         }
         return false;
     }
@@ -286,19 +347,24 @@ public class GameDirector : MonoBehaviour
     private void Awake()
     {
         Application.targetFrameRate = 120;
-
-        prefabList.Add("BaseSprite", UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Prefabs/Game/BaseSprite.prefab", typeof(Object)));
-        prefabList.Add("BaseTile", UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Prefabs/Game/BaseTile.prefab", typeof(Object)));
+        
+        prefabList.Add("BaseSprite", Resources.Load<Object>("Prefabs/Game/BaseSprite"));
+        prefabList.Add("BaseTile", Resources.Load<Object>("Prefabs/Game/BaseTile"));
 
         foodChance.Add("burn", 0.45f);
         foodChance.Add("freeze", 0.3f);
         foodChance.Add("gold", 0.15f);
         foodChance.Add("ghost", 0.05f);
+
+        string path = Application.dataPath + "/Resources/tileInfo.json";
+        Debug.Log(path);
+        System.IO.StreamReader reader = new System.IO.StreamReader(path);
+        tileInfo = JsonUtility.FromJson<TileInfo>(reader.ReadToEnd());
     }
 
     void Start()
     {
-        Create_DefaultField();
+        Create_DebugField();
         StartCoroutine(Game());
     }
 

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DefaultTile : Tile
+public class TileAnimated : Tile
 {
     private TileState state = TileState.free;
     private TileType type = TileType.ground;
@@ -11,15 +11,45 @@ public class DefaultTile : Tile
     private GameObject gameObject;
     private GameObject foodObject;
     private Object foodPrefab;
+    private List<Vector2> animFrames = new List<Vector2>();
+    private float fps = 2f;
+    private int currentFrame;
 
-    public DefaultTile(Vector3 pos, Transform parent, GameDirector gameDirector, Object prefab)
+    public TileAnimated(Vector3 pos, string tileId, Vector3 rotation, Transform parent, GameDirector gameDirector, Object prefab)
     {
         gameObject = GameObject.Instantiate(prefab) as GameObject;
         gameObject.transform.position = pos;
-        gameObject.transform.rotation = Quaternion.Euler(90 * Random.Range(0, 5), 270, 90);
+        gameObject.transform.rotation = Quaternion.Euler(rotation);
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");
+
+        foreach (AnimatedTile_JSON tile in gameDirector.tileInfo.animated_tiles)
+        {
+            Debug.Log(tile.id);
+            if (tile.id == tileId)
+            {
+                foreach (AnimFrame_JSON animFrame in tile.anim_frames)
+                {
+                    animFrames.Add(new Vector2(animFrame.x, animFrame.y));
+                }
+                currentFrame = Random.Range(0, animFrames.Count);
+                gameObject.SetTextureOffset(animFrames[0]);
+                if (!System.Enum.TryParse<TileType>(tile.type, out type)) type = TileType.water;
+                break;
+            }
+        }
+    }
+
+    public override IEnumerator PlayAnimation()
+    {
+        while(true)
+        {
+            currentFrame++;
+            if (currentFrame >= animFrames.Count) currentFrame = 0;
+            gameObject.SetTextureOffset(animFrames[currentFrame]);
+            yield return new WaitForSeconds(1 / fps);
+        }
     }
 
     public override void SetTileState(TileState state)
@@ -85,10 +115,5 @@ public class DefaultTile : Tile
     {
         foodType = type;
     }
-
-    public override IEnumerator PlayAnimation()
-    {
-        yield return null;
-    }
-
 }
+

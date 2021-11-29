@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DefaultTile : Tile
+public class TileStatic : Tile
 {
     private TileState state = TileState.free;
     private TileType type = TileType.ground;
@@ -12,14 +12,24 @@ public class DefaultTile : Tile
     private GameObject foodObject;
     private Object foodPrefab;
 
-    public DefaultTile(Vector3 pos, Transform parent, GameDirector gameDirector, Object prefab)
+    public TileStatic(Vector3 pos, string tileId, Vector3 rotation, Transform parent, GameDirector gameDirector, Object prefab)
     {
         gameObject = GameObject.Instantiate(prefab) as GameObject;
         gameObject.transform.position = pos;
-        gameObject.transform.rotation = Quaternion.Euler(90 * Random.Range(0, 5), 270, 90);
+        gameObject.transform.rotation = Quaternion.Euler(rotation);
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");
+
+        foreach (StaticTile_JSON tile in gameDirector.tileInfo.static_tiles)
+        {
+            if (tile.id == tileId)
+            {
+                gameObject.SetTextureOffset(new Vector2(tile.x, tile.y));
+                if (!System.Enum.TryParse<TileType>(tile.type, out type)) type = TileType.ground;
+                break;
+            }
+        }
     }
 
     public override void SetTileState(TileState state)
@@ -90,5 +100,4 @@ public class DefaultTile : Tile
     {
         yield return null;
     }
-
 }

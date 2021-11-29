@@ -77,8 +77,11 @@ public class Snake
 
     public void SetHeading(Heading heading)
     {
-        bodyList[0].SetHeading(heading);
-        gameDirector.audioController.PlaySound("Sound_Snake_Turn");
+        if (bodyList[0].GetHeading() != heading)
+        {
+            bodyList[0].SetHeading(heading);
+            gameDirector.audioController.PlaySound("Sound_Snake_Turn");
+        }
     }
 
     public SnakeState GetState()
@@ -101,6 +104,11 @@ public class Snake
                 currentSpeed = speed * speedMultiplier;
                 break;
         }
+    }
+
+    public Vector3 GetHeadPos()
+    {
+        return bodyList[0].GetPosition();
     }
 
     public void OccupyTiles()

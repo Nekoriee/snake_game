@@ -1,0 +1,120 @@
+{
+  "static_tiles": [
+    {
+      "id": "grass",
+      "x": 0.0,
+      "y": 0.75,
+      "type": "ground"
+    },
+
+    {
+      "id": "sand",
+      "x": 0.0,
+      "y": 0.25,
+      "type": "ground"
+    },
+
+    {
+      "id": "g2s_s",
+      "x": 0.0,
+      "y": 0.5,
+      "type": "ground"
+    },
+
+    {
+      "id": "g2s_ic",
+      "x": 0.25,
+      "y": 0.0,
+      "type": "ground"
+    },
+
+    {
+      "id": "g2s_oc",
+      "x": 0.0,
+      "y": 0.0,
+      "type": "ground"
+    },
+
+    {
+      "id": "grass_rock",
+      "x": 0.5,
+      "y": 0.0,
+      "type": "wall"
+    },
+
+    {
+      "id": "sand_rock",
+      "x": 0.5,
+      "y": 0.0,
+      "type": "wall"
+    }
+  ],
+
+  "animated_tiles": [
+
+    {
+      "id": "water",
+      "type": "water",
+      "anim_frames": [
+        {
+          "x": 0.75,
+          "y": 0.75
+        },
+
+        {
+          "x": 0.75,
+          "y": 0.5
+        }
+      ]
+    },
+
+    {
+      "id": "s2w_s",
+      "type": "ground",
+      "anim_frames": [
+        {
+          "x": 0.5,
+          "y": 0.75
+        },
+
+        {
+          "x": 0.5,
+          "y": 0.5
+        }
+      ]
+    },
+
+    {
+      "id": "s2w_ic",
+      "type": "ground",
+      "anim_frames": [
+        {
+          "x": 0.25,
+          "y": 0.25
+        },
+
+        {
+          "x": 0.5,
+          "y": 0.25
+        }
+      ]
+    },
+
+    {
+      "id": "s2w_oc",
+      "type": "ground",
+      "anim_frames": [
+        {
+          "x": 0.25,
+          "y": 0.5
+        },
+
+        {
+          "x": 0.5,
+          "y": 0.75
+        }
+      ]
+    }
+
+  ]
+}
