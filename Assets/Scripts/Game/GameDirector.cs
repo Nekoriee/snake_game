@@ -31,6 +31,22 @@ public class GameDirector : MonoBehaviour
     private Dictionary<string, Object> prefabList = new Dictionary<string, Object>();
     public TileInfo tileInfo;
 
+    private void Create_PlayField(string json)
+    {
+        for (int i = 0; i < cntTiles_V; i++)
+        {
+            for (int j = 0; j < cntTiles_H; j++)
+            {
+                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
+                playField.Add(pos, new DefaultTile(pos, transform, this, prefabList["BaseTile"]));
+            }
+        }
+
+        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+
+        snake.SetSpeedMultiplier(1f);
+    }
+
     private void Create_DefaultField()
     {
         for (int i = 0; i < cntTiles_V; i++)
@@ -54,8 +70,10 @@ public class GameDirector : MonoBehaviour
             for (int j = 0; j < cntTiles_H; j++)
             {
                 Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-                
-                playField.Add(pos, new TileStatic(pos, "sand", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+                if (j < cntTiles_H/2) playField.Add(pos, new TileStatic(pos, "sand", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+                else if (j == (int)(cntTiles_H / 2)) playField.Add(pos, new TileAnimated(pos, "s2w_s", new Vector3(180, 270f, 90f), transform, this, prefabList["BaseTile"]));
+                else playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+                StartCoroutine(playField[pos].PlayAnimation());
             }
         }
 
@@ -251,29 +269,40 @@ public class GameDirector : MonoBehaviour
     {
         foreach (Tile tile in playField.Values)
         {
-            tile.SetTileState(TileState.free);
+            tile.SetTileState(TileState.free); // ADD nofood
         }
         snake.OccupyTiles();
     }
 
-    public bool IsTileOccupied(Vector3 tilePos)
+    public TileState GetTileState(Vector3 tilePos)
     {
         if (playField.ContainsKey(tilePos))
         {
-            if (playField[tilePos].GetTileState() == TileState.occupied) return true;
-            else return false;
+            return playField[tilePos].GetTileState();
         }
-        else return true;
+        else return TileState.nul;
+    }
+
+    public bool IsTileOccupied(Vector3 tilePos)
+    {
+        if (GetTileState(tilePos) == TileState.occupied) return true;
+        else return false;
+    }
+
+    public TileType GetTileType(Vector3 tilePos)
+    {
+        if (playField.ContainsKey(tilePos))
+        {
+            return playField[tilePos].GetTileType();
+        }
+        else return TileType.nul;
     }
 
     public bool IsTileAWall(Vector3 tilePos)
     {
-        if (playField.ContainsKey(tilePos))
-        {
-            if (playField[tilePos].GetTileType() == TileType.wall) return true;
-            else return false;
-        }
-        else return true;
+        TileType type = GetTileType(tilePos);
+        if (type == TileType.wall || type == TileType.nul) return true;
+        else return false;
     }
 
     public FoodType GetFoodType(Vector3 tilePos)
@@ -357,7 +386,6 @@ public class GameDirector : MonoBehaviour
         foodChance.Add("ghost", 0.05f);
 
         string path = Application.dataPath + "/Resources/tileInfo.json";
-        Debug.Log(path);
         System.IO.StreamReader reader = new System.IO.StreamReader(path);
         tileInfo = JsonUtility.FromJson<TileInfo>(reader.ReadToEnd());
     }

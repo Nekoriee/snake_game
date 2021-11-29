@@ -9,5 +9,5 @@ public abstract class SnakeBody
 
     public abstract Vector3 GetPosition();
     public abstract void SetPosition(Vector3 position);
-    public abstract void UpdateSprite(SnakeState state);
+    public abstract void UpdateSprite(SnakeState state, bool isSubmerged);
 }

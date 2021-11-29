@@ -49,9 +49,9 @@ public class Snake
     {
         foreach(SnakeBody bodyPart in bodyList)
         {
-            bodyPart.UpdateSprite(state);
+            if (gameDirector.GetTileType(bodyPart.GetPosition()) == TileType.water) bodyPart.UpdateSprite(state, true);
+            else bodyPart.UpdateSprite(state, false);
         }
-       
     }
 
     public void SetSpeedMultiplier(float multiplier)
@@ -122,7 +122,6 @@ public class Snake
     private void Grow()
     {
         bodyList.Add(new Body(bodyList[bodyList.Count - 1].GetPosition(), snake.transform, gameDirector.GetPrefab("BaseSprite")));
-        UpdateSprites();
     }
 
     public bool Move()
@@ -219,6 +218,7 @@ public class Snake
             bodyList[0].SetPosition(headPosNew);
 
             gameDirector.UpdateTiles();
+            UpdateSprites();
             if (foodEaten) gameDirector.CreateFood();
             gameDirector.audioController.PlaySound("Sound_Snake_Move");
 

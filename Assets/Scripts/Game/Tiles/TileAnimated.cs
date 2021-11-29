@@ -75,19 +75,23 @@ public class TileAnimated : Tile
         switch (type)
         {
             case FoodType.normal:
-                foodObject.SetTextureOffset(new Vector2(0, 0.4f));
+                if (this.type != TileType.water) foodObject.SetTextureOffset(new Vector2(0, 0.4f));
+                else foodObject.SetTextureOffset(new Vector2(0, 0.2f));
                 SetFoodType(FoodType.normal);
                 break;
             case FoodType.burn:
-                foodObject.SetTextureOffset(new Vector2(0.4f, 0.4f));
+                if (this.type != TileType.water) foodObject.SetTextureOffset(new Vector2(0.4f, 0.4f));
+                else foodObject.SetTextureOffset(new Vector2(0, 0.2f));
                 SetFoodType(FoodType.burn);
                 break;
             case FoodType.freeze:
-                foodObject.SetTextureOffset(new Vector2(0.2f, 0.4f));
+                if (this.type != TileType.water) foodObject.SetTextureOffset(new Vector2(0.2f, 0.4f));
+                else foodObject.SetTextureOffset(new Vector2(0, 0.2f));
                 SetFoodType(FoodType.freeze);
                 break;
             case FoodType.golden:
-                foodObject.SetTextureOffset(new Vector2(0.6f, 0.4f));
+                if (this.type != TileType.water) foodObject.SetTextureOffset(new Vector2(0.6f, 0.4f));
+                else foodObject.SetTextureOffset(new Vector2(0, 0.2f));
                 SetFoodType(FoodType.golden);
                 break;
             case FoodType.ghost:

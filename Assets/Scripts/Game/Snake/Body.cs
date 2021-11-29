@@ -34,21 +34,25 @@ public class Body : SnakeBody
         return Heading.N;
     }
 
-    public override void UpdateSprite(SnakeState state)
+    public override void UpdateSprite(SnakeState state, bool isSubmerged)
     {
         switch (state)
         {
             case SnakeState.normal:
-                gameObject.SetTextureOffset(new Vector2(0, 0.6f));
+                if (!isSubmerged) gameObject.SetTextureOffset(new Vector2(0, 0.6f));
+                else gameObject.SetTextureOffset(new Vector2(0f, 0f));
                 break;
             case SnakeState.burn:
-                gameObject.SetTextureOffset(new Vector2(0.4f, 0.6f));
+                if (!isSubmerged) gameObject.SetTextureOffset(new Vector2(0.4f, 0.6f));
+                else gameObject.SetTextureOffset(new Vector2(0f, 0f));
                 break;
             case SnakeState.freeze:
-                gameObject.SetTextureOffset(new Vector2(0.2f, 0.6f));
+                if (!isSubmerged) gameObject.SetTextureOffset(new Vector2(0.2f, 0.6f));
+                else gameObject.SetTextureOffset(new Vector2(0f, 0f));
                 break;
             case SnakeState.gold:
-                gameObject.SetTextureOffset(new Vector2(0.6f, 0.6f));
+                if (!isSubmerged) gameObject.SetTextureOffset(new Vector2(0.6f, 0.6f));
+                else gameObject.SetTextureOffset(new Vector2(0f, 0f));
                 break;
             case SnakeState.ghost:
                 gameObject.SetTextureOffset(new Vector2(0.8f, 0.6f));
