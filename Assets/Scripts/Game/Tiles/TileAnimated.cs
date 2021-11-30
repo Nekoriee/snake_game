@@ -15,18 +15,17 @@ public class TileAnimated : Tile
     private float fps = 2f;
     private int currentFrame;
 
-    public TileAnimated(Vector3 pos, string tileId, Vector3 rotation, Transform parent, GameDirector gameDirector, Object prefab)
+    public TileAnimated(Vector3 pos, string tileId, Quaternion rotation, Transform parent, GameDirector gameDirector, Object prefab)
     {
         gameObject = GameObject.Instantiate(prefab) as GameObject;
         gameObject.transform.position = pos;
-        gameObject.transform.rotation = Quaternion.Euler(rotation);
+        gameObject.transform.rotation = rotation;
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");
 
         foreach (AnimatedTile_JSON tile in gameDirector.tileInfo.animated_tiles)
         {
-            Debug.Log(tile.id);
             if (tile.id == tileId)
             {
                 foreach (AnimFrame_JSON animFrame in tile.anim_frames)

@@ -9,7 +9,7 @@ public class Tile_MapInfo
     public string tileID;
     public int x;
     public int y;
-    public int rotation;
+    public Quaternion rotation;
     public string state;
 }
 

@@ -12,11 +12,11 @@ public class TileStatic : Tile
     private GameObject foodObject;
     private Object foodPrefab;
 
-    public TileStatic(Vector3 pos, string tileId, Vector3 rotation, Transform parent, GameDirector gameDirector, Object prefab)
+    public TileStatic(Vector3 pos, string tileId, Quaternion rotation, Transform parent, GameDirector gameDirector, Object prefab)
     {
         gameObject = GameObject.Instantiate(prefab) as GameObject;
         gameObject.transform.position = pos;
-        gameObject.transform.rotation = Quaternion.Euler(rotation);
+        gameObject.transform.rotation = rotation;
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");

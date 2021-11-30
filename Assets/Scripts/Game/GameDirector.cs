@@ -56,13 +56,43 @@ public class GameDirector : MonoBehaviour
         foreach (Tile_MapInfo tile in mapInfo.tiles)
         {
             Vector3 pos = new Vector3(tile.x, tile.y, 0);
-            if (IsTileAnimated(tile.tileID)) playField.Add(pos, new TileAnimated(pos, tile.tileID, new Vector3(tile.rotation, 270f, 90f), transform, this, prefabList["BaseTile"]));
-            else playField.Add(pos, new TileStatic(pos, tile.tileID, new Vector3(tile.rotation, 270f, 90f), transform, this, prefabList["BaseTile"]));
+            if (IsTileAnimated(tile.tileID))
+            {
+                playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, this, prefabList["BaseTile"]));
+                StartCoroutine(playField[pos].PlayAnimation());
+            }
+            else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, this, prefabList["BaseTile"]));
+
+            TileState state;
+            if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
+            playField[pos].SetTileState(state);
         }
 
-        snake = new Snake(Vector3.zero, Heading.N, 3, snakeSpeed, this);
-        //snake.snake.transform.position = new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0);
-        //snake.snake.transform.rotation = Quaternion.Euler(0, 0, mapInfo.spawn.rotation);
+        Heading heading = Heading.N;
+        switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
+        {
+            case 0:
+                heading = Heading.N;
+                break;
+
+            case 90:
+                heading = Heading.W;
+                break;
+
+            case 180:
+                heading = Heading.S;
+                break;
+
+            case 270:
+                heading = Heading.E;
+                break;
+
+            default:
+                break;
+        }
+
+        snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
+        
 
         snake.SetSpeedMultiplier(1f);
     }
@@ -83,42 +113,42 @@ public class GameDirector : MonoBehaviour
         snake.SetSpeedMultiplier(1f);
     }
 
-    private void Create_DebugField()
-    {
-        for (int i = 0; i < cntTiles_V; i++)
-        {
-            for (int j = 0; j < cntTiles_H; j++)
-            {
-                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-                if (j < cntTiles_H/2) playField.Add(pos, new TileStatic(pos, "sand", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
-                else if (j == (int)(cntTiles_H / 2)) playField.Add(pos, new TileAnimated(pos, "s2w_s", new Vector3(180, 270f, 90f), transform, this, prefabList["BaseTile"]));
-                else playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
-                StartCoroutine(playField[pos].PlayAnimation());
-            }
-        }
+    //private void Create_DebugField()
+    //{
+    //    for (int i = 0; i < cntTiles_V; i++)
+    //    {
+    //        for (int j = 0; j < cntTiles_H; j++)
+    //        {
+    //            Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
+    //            if (j < cntTiles_H/2) playField.Add(pos, new TileStatic(pos, "sand", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+    //            else if (j == (int)(cntTiles_H / 2)) playField.Add(pos, new TileAnimated(pos, "s2w_s", new Vector3(180, 270f, 90f), transform, this, prefabList["BaseTile"]));
+    //            else playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+    //            StartCoroutine(playField[pos].PlayAnimation());
+    //        }
+    //    }
 
-        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+    //    snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
 
-        snake.SetSpeedMultiplier(1f);
-    }
+    //    snake.SetSpeedMultiplier(1f);
+    //}
 
-    private void Create_WaterField()
-    {
-        for (int i = 0; i < cntTiles_V; i++)
-        {
-            for (int j = 0; j < cntTiles_H; j++)
-            {
-                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
+    //private void Create_WaterField()
+    //{
+    //    for (int i = 0; i < cntTiles_V; i++)
+    //    {
+    //        for (int j = 0; j < cntTiles_H; j++)
+    //        {
+    //            Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
 
-                playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
-                StartCoroutine(playField[pos].PlayAnimation());
-            }
-        }
+    //            playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
+    //            StartCoroutine(playField[pos].PlayAnimation());
+    //        }
+    //    }
 
-        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+    //    snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
 
-        snake.SetSpeedMultiplier(1f);
-    }
+    //    snake.SetSpeedMultiplier(1f);
+    //}
 
     public void ChangeGameState(GameState state)
     {
@@ -339,7 +369,7 @@ public class GameDirector : MonoBehaviour
         if (playField.ContainsKey(tilePos))
         {
             if (playField[tilePos].GetTileState() == TileState.free &&
-                playField[tilePos].GetTileType() != TileType.wall) return true;
+                playField[tilePos].GetTileType() != TileType.wall && playField[tilePos].GetTileType() != TileType.nul) return true;
         }
         return false;
     }

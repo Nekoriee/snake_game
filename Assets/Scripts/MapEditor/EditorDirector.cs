@@ -50,7 +50,7 @@ public class EditorDirector : MonoBehaviour
                     Tile_MapInfo tile = new Tile_MapInfo();
                     tile.x = Mathf.RoundToInt(tiles[pos].gameObject.transform.position.x);
                     tile.y = Mathf.RoundToInt(tiles[pos].gameObject.transform.position.y);
-                    tile.rotation = Mathf.RoundToInt(tiles[pos].gameObject.transform.rotation.eulerAngles.x);
+                    tile.rotation = tiles[pos].gameObject.transform.rotation;
                     tile.state = System.Enum.GetName(typeof(TileState), tiles[pos].state);
                     tile.tileID = tiles[pos].tileId;
                     tilesToSave.Add(tile);
