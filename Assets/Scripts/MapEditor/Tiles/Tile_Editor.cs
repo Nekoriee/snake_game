@@ -26,7 +26,12 @@ public class Tile_Editor
             {
                 this.tileId = tileId;
                 gameObject.SetTextureOffset(new Vector2(tile.x, tile.y));
-                if (!System.Enum.TryParse<TileType>(tile.type, out type)) type = TileType.ground;
+                if (!System.Enum.TryParse<TileType>(tile.type, out type))
+                {
+                    Debug.LogError("Couldn't find type!");
+                    type = TileType.ground;
+                }
+                    
                 break;
             }
         }
@@ -37,7 +42,11 @@ public class Tile_Editor
             {
                 this.tileId = tileId;
                 gameObject.SetTextureOffset(new Vector2(tile.anim_frames[0].x, tile.anim_frames[0].y));
-                if (!System.Enum.TryParse<TileType>(tile.type, out type)) type = TileType.ground;
+                if (!System.Enum.TryParse<TileType>(tile.type, out type))
+                {
+                    Debug.LogError("Couldn't find type!");
+                    type = TileType.ground;
+                }
                 break;
             }
         }
@@ -47,6 +56,7 @@ public class Tile_Editor
             this.tileId = "grass";
             type = TileType.ground;
             gameObject.SetTextureOffset(new Vector2(0, 0.75f));
+            Debug.LogError("Couldn't find tileID!");
         }
     }
 

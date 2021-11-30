@@ -31,18 +31,38 @@ public class GameDirector : MonoBehaviour
     private Dictionary<string, Object> prefabList = new Dictionary<string, Object>();
     public TileInfo tileInfo;
 
-    private void Create_PlayField(string json)
+    public bool IsTileAnimated(string tileId)
     {
-        for (int i = 0; i < cntTiles_V; i++)
+        bool isAnimated = false;
+        foreach(AnimatedTile_JSON tile in tileInfo.animated_tiles)
         {
-            for (int j = 0; j < cntTiles_H; j++)
+            if (tileId == tile.id)
             {
-                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-                playField.Add(pos, new DefaultTile(pos, transform, this, prefabList["BaseTile"]));
+                isAnimated = true;
+                break;
             }
+                
+        }
+        return isAnimated;
+    }
+
+    private void Create_PlayField(string mapName_wld)
+    {
+
+        string path = Application.dataPath + "/Resources/" + mapName_wld;
+        System.IO.StreamReader reader = new System.IO.StreamReader(path);
+        MapInfo mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
+
+        foreach (Tile_MapInfo tile in mapInfo.tiles)
+        {
+            Vector3 pos = new Vector3(tile.x, tile.y, 0);
+            if (IsTileAnimated(tile.tileID)) playField.Add(pos, new TileAnimated(pos, tile.tileID, new Vector3(tile.rotation, 270f, 90f), transform, this, prefabList["BaseTile"]));
+            else playField.Add(pos, new TileStatic(pos, tile.tileID, new Vector3(tile.rotation, 270f, 90f), transform, this, prefabList["BaseTile"]));
         }
 
-        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+        snake = new Snake(Vector3.zero, Heading.N, 3, snakeSpeed, this);
+        //snake.snake.transform.position = new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0);
+        //snake.snake.transform.rotation = Quaternion.Euler(0, 0, mapInfo.spawn.rotation);
 
         snake.SetSpeedMultiplier(1f);
     }
@@ -388,11 +408,12 @@ public class GameDirector : MonoBehaviour
         string path = Application.dataPath + "/Resources/tileInfo.json";
         System.IO.StreamReader reader = new System.IO.StreamReader(path);
         tileInfo = JsonUtility.FromJson<TileInfo>(reader.ReadToEnd());
+        reader.Close();
     }
 
     void Start()
     {
-        Create_DebugField();
+        Create_PlayField("testmap.wld");
         StartCoroutine(Game());
     }
 

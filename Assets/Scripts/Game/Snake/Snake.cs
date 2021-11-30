@@ -6,7 +6,7 @@ public enum SnakeState {normal, burn, freeze, gold, ghost }
 
 public class Snake
 {
-    private GameObject snake;
+    public GameObject snake;
     private GameDirector gameDirector;
     private SnakeState state = SnakeState.normal;
     private List<SnakeBody> bodyList = new List<SnakeBody>();
