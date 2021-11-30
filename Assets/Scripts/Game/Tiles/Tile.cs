@@ -9,6 +9,7 @@ public enum TileType {ground, wall, water, nul};
 public abstract class Tile
 {
     public abstract void SetTileState(TileState state);
+    public abstract void RevertTileState();
     public abstract TileState GetTileState();
 
     public abstract TileType GetTileType();

@@ -5,6 +5,7 @@ using UnityEngine;
 public class TileAnimated : Tile
 {
     private TileState state = TileState.free;
+    private TileState curState = TileState.free;
     private TileType type = TileType.ground;
     private FoodType foodType = FoodType.nofood;
     private GameDirector gameDirector;
@@ -15,7 +16,7 @@ public class TileAnimated : Tile
     private float fps = 2f;
     private int currentFrame;
 
-    public TileAnimated(Vector3 pos, string tileId, Quaternion rotation, Transform parent, GameDirector gameDirector, Object prefab)
+    public TileAnimated(Vector3 pos, string tileId, Quaternion rotation, Transform parent, TileState state, GameDirector gameDirector, Object prefab)
     {
         gameObject = GameObject.Instantiate(prefab) as GameObject;
         gameObject.transform.position = pos;
@@ -23,6 +24,8 @@ public class TileAnimated : Tile
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");
+
+        this.state = state;
 
         foreach (AnimatedTile_JSON tile in gameDirector.tileInfo.animated_tiles)
         {
@@ -53,12 +56,17 @@ public class TileAnimated : Tile
 
     public override void SetTileState(TileState state)
     {
-        this.state = state;
+        curState = state;
+    }
+
+    public override void RevertTileState()
+    {
+        curState = state;
     }
 
     public override TileState GetTileState()
     {
-        return state;
+        return curState;
     }
 
     public override TileType GetTileType()

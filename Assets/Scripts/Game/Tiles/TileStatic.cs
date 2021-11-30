@@ -5,6 +5,7 @@ using UnityEngine;
 public class TileStatic : Tile
 {
     private TileState state = TileState.free;
+    private TileState curState = TileState.free;
     private TileType type = TileType.ground;
     private FoodType foodType = FoodType.nofood;
     private GameDirector gameDirector;
@@ -12,7 +13,7 @@ public class TileStatic : Tile
     private GameObject foodObject;
     private Object foodPrefab;
 
-    public TileStatic(Vector3 pos, string tileId, Quaternion rotation, Transform parent, GameDirector gameDirector, Object prefab)
+    public TileStatic(Vector3 pos, string tileId, Quaternion rotation, Transform parent, TileState state, GameDirector gameDirector, Object prefab)
     {
         gameObject = GameObject.Instantiate(prefab) as GameObject;
         gameObject.transform.position = pos;
@@ -20,6 +21,8 @@ public class TileStatic : Tile
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");
+
+        this.state = state;
 
         foreach (StaticTile_JSON tile in gameDirector.tileInfo.static_tiles)
         {
@@ -34,12 +37,17 @@ public class TileStatic : Tile
 
     public override void SetTileState(TileState state)
     {
-        this.state = state;
+        curState = state;
+    }
+
+    public override void RevertTileState()
+    {
+        curState = state;
     }
 
     public override TileState GetTileState()
     {
-        return state;
+        return curState;
     }
 
     public override TileType GetTileType()

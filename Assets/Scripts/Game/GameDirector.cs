@@ -56,16 +56,18 @@ public class GameDirector : MonoBehaviour
         foreach (Tile_MapInfo tile in mapInfo.tiles)
         {
             Vector3 pos = new Vector3(tile.x, tile.y, 0);
-            if (IsTileAnimated(tile.tileID))
-            {
-                playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, this, prefabList["BaseTile"]));
-                StartCoroutine(playField[pos].PlayAnimation());
-            }
-            else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, this, prefabList["BaseTile"]));
 
             TileState state;
             if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
-            playField[pos].SetTileState(state);
+
+            if (IsTileAnimated(tile.tileID))
+            {
+                playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+                StartCoroutine(playField[pos].PlayAnimation());
+            }
+            else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+
+
         }
 
         Heading heading = Heading.N;
@@ -93,22 +95,6 @@ public class GameDirector : MonoBehaviour
 
         snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
         
-
-        snake.SetSpeedMultiplier(1f);
-    }
-
-    private void Create_DefaultField()
-    {
-        for (int i = 0; i < cntTiles_V; i++)
-        {
-            for (int j = 0; j < cntTiles_H; j++)
-            {
-                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-                playField.Add(pos , new DefaultTile(pos, transform, this, prefabList["BaseTile"]));
-            }
-        }
-
-        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
 
         snake.SetSpeedMultiplier(1f);
     }
@@ -319,7 +305,7 @@ public class GameDirector : MonoBehaviour
     {
         foreach (Tile tile in playField.Values)
         {
-            tile.SetTileState(TileState.free); // ADD nofood
+            tile.RevertTileState();
         }
         snake.OccupyTiles();
     }
