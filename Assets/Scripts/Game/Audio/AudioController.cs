@@ -49,6 +49,12 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    public void SetMusic(string filename)
+    {
+        AudioClip clip = Resources.Load("Music/" + filename) as AudioClip;
+        soundList.Add("Music_Ingame", new Sound(clip, 1f, 1f, sources[0]));
+    }
+
     public void PauseMusic()
     {
         sources[0].Pause();

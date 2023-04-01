@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -19,7 +20,7 @@ public class GameDirector : MonoBehaviour
     private Dictionary<string, float> foodChance = new Dictionary<string, float>();
 
     private int currentScore = 0;
-    private int goalScore = 10;
+    private int goalScore = 0;
     private bool musicOn = true;
 
     private Dictionary<Vector3, Tile> playField = new Dictionary<Vector3, Tile>();
@@ -30,6 +31,7 @@ public class GameDirector : MonoBehaviour
 
     private Dictionary<string, Object> prefabList = new Dictionary<string, Object>();
     public TileInfo tileInfo;
+    private string levelName = ".wld";
 
     public bool IsTileAnimated(string tileId)
     {
@@ -46,57 +48,58 @@ public class GameDirector : MonoBehaviour
         return isAnimated;
     }
 
-    private void Create_PlayField(string mapName_wld)
+    private void Create_PlayField()
     {
-
-        string path = Application.dataPath + "/Resources/" + mapName_wld;
-        System.IO.StreamReader reader = new System.IO.StreamReader(path);
-        MapInfo mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
-
-        foreach (Tile_MapInfo tile in mapInfo.tiles)
+        string path;
+        if (PlayerPrefs.HasKey("LevelPath") && PlayerPrefs.GetString("LevelPath") != "" && File.Exists(PlayerPrefs.GetString("LevelPath")))
         {
-            Vector3 pos = new Vector3(tile.x, tile.y, 0);
-
-            TileState state;
-            if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
-
-            if (IsTileAnimated(tile.tileID))
+            path = PlayerPrefs.GetString("LevelPath");
+            levelName = Path.GetFileName(path);
+            System.IO.StreamReader reader = new System.IO.StreamReader(path);
+            MapInfo mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
+            foreach (Tile_MapInfo tile in mapInfo.tiles)
             {
-                playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
-                StartCoroutine(playField[pos].PlayAnimation());
+                Vector3 pos = new Vector3(tile.x, tile.y, 0);
+
+                TileState state;
+                if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
+
+                if (IsTileAnimated(tile.tileID))
+                {
+                    playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+                    StartCoroutine(playField[pos].PlayAnimation());
+                }
+                else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
             }
-            else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+            Heading heading = Heading.N;
+            switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
+            {
+                case 0:
+                    heading = Heading.N;
+                    break;
 
+                case 90:
+                    heading = Heading.W;
+                    break;
 
+                case 180:
+                    heading = Heading.S;
+                    break;
+
+                case 270:
+                    heading = Heading.E;
+                    break;
+
+                default:
+                    break;
+            }
+            snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
+            snake.SetSpeedMultiplier(1f);
         }
-
-        Heading heading = Heading.N;
-        switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
+        else
         {
-            case 0:
-                heading = Heading.N;
-                break;
-
-            case 90:
-                heading = Heading.W;
-                break;
-
-            case 180:
-                heading = Heading.S;
-                break;
-
-            case 270:
-                heading = Heading.E;
-                break;
-
-            default:
-                break;
+            Create_Default();
         }
-
-        snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
-        
-
-        snake.SetSpeedMultiplier(1f);
     }
 
     //private void Create_DebugField()
@@ -136,6 +139,22 @@ public class GameDirector : MonoBehaviour
     //    snake.SetSpeedMultiplier(1f);
     //}
 
+    private void Create_Default()
+    {
+        for (int i = 0; i < cntTiles_V; i++)
+        {
+            for (int j = 0; j < cntTiles_H; j++)
+            {
+                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
+                playField.Add(pos, new TileStatic(pos, "grass", Quaternion.Euler(90f * Random.Range(0, 5), 270f, 90f), transform, TileState.free, this, prefabList["BaseTile"]));
+            }
+        }
+
+        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
+
+        snake.SetSpeedMultiplier(1f);
+    }
+
     public void ChangeGameState(GameState state)
     {
         gameState = state;
@@ -148,6 +167,10 @@ public class GameDirector : MonoBehaviour
 
     private void StopGame()
     {
+        if (currentScore >= goalScore)
+        {
+            PlayerPrefs.SetInt("Record_" + levelName, currentScore);
+        }
         ChangeGameState(GameState.gameover);
         audioController.StopMusic();
         ui.StartGameOver();
@@ -156,8 +179,18 @@ public class GameDirector : MonoBehaviour
    IEnumerator Game()
     {
         CreateFood();
+        if (PlayerPrefs.HasKey("Record_" + levelName) && PlayerPrefs.GetInt("Record_" + levelName) > 0)
+        {
+            goalScore = PlayerPrefs.GetInt("Record_" + levelName);
+        }
         ui.UpdateCurrentScore(currentScore.ToString());
         ui.UpdateGoalScore(goalScore.ToString());
+        if (PlayerPrefs.HasKey("Music"))
+        {
+            musicOn = (PlayerPrefs.GetInt("Music") > 0) ? true : false;
+        }
+        ui.UpdateMusicText(musicOn);
+        audioController.SetMusicPitch(1f);
         if (musicOn == true) audioController.PlayMusic();
         snakeHeadingBeforeMove = snake.GetHeading();
         while (gameState != GameState.gameover)
@@ -203,15 +236,50 @@ public class GameDirector : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
+    public void ToMenu()
+    {
+        SceneManager.LoadScene(0);
+    }
+
     public void AddScore(int score)
     {
         currentScore += score;
         ui.UpdateCurrentScore(currentScore.ToString());
+        if (currentScore > goalScore)
+        {
+            ui.UpdateGoalScore(currentScore.ToString());
+        }
     }
 
     public void SetGoalScore(int score)
     {
         ui.UpdateGoalScore(score.ToString());
+    }
+
+    private void Pause(bool bPause)
+    {
+        if (bPause)
+        {
+            Time.timeScale = 0;
+            ChangeGameState(GameState.paused);
+            audioController.SetMusicVolume(0.25f);
+            ui.StartPause();
+        }
+        else
+        {
+            Time.timeScale = 1;
+            audioController.SetMusicVolume(1f);
+            ChangeGameState(GameState.game);
+            ui.StopPause();
+        }
+    }
+
+    private void ChangeMusicState()
+    {
+        musicOn = !musicOn;
+        PlayerPrefs.SetInt("Music", musicOn ? 1 : 0);
+        if (musicOn == true && GetGameState() != GameState.gameover) audioController.PlayMusic(); else audioController.StopMusic();
+        ui.UpdateMusicText(musicOn);
     }
 
     private void CheckInputGame()
@@ -234,15 +302,11 @@ public class GameDirector : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Pause))
         {
-            Time.timeScale = 0;
-            ChangeGameState(GameState.paused);
-            audioController.SetMusicVolume(0.25f);
-            ui.StartPause();
+            Pause(true);
         }
         if (Input.GetKeyDown(KeyCode.M))
         {
-            musicOn = !musicOn;
-            if (musicOn == true) audioController.PlayMusic(); else audioController.StopMusic();
+            ChangeMusicState();
         }
     }
 
@@ -250,15 +314,11 @@ public class GameDirector : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Pause))
         {
-            Time.timeScale = 1;
-            audioController.SetMusicVolume(1f);
-            ChangeGameState(GameState.game);
-            ui.StopPause();
+            Pause(false);
         }
         if (Input.GetKeyDown(KeyCode.M))
         {
-            musicOn = !musicOn;
-            if (musicOn == true) audioController.PlayMusic(); else audioController.StopMusic();
+            ChangeMusicState();
         }
     }
 
@@ -270,7 +330,7 @@ public class GameDirector : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.M))
         {
-            musicOn = !musicOn;
+            ChangeMusicState();
         }
     }
 
@@ -429,7 +489,8 @@ public class GameDirector : MonoBehaviour
 
     void Start()
     {
-        Create_PlayField("testmap.wld");
+        Create_PlayField();
+        Pause(false);
         StartCoroutine(Game());
     }
 

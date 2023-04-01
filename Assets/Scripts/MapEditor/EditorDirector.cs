@@ -64,6 +64,7 @@ public class EditorDirector : MonoBehaviour
             string json = JsonUtility.ToJson(mapInfo);
             string path = Application.dataPath + "/Resources/" + name + ".wld";
 
+            System.IO.File.Delete(path);
             System.IO.File.WriteAllText(path, json);
 
         }

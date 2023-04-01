@@ -9,6 +9,8 @@ public class UIController : MonoBehaviour
     [SerializeField] private TMPro.TextMeshProUGUI goalScore;
     [SerializeField] private TMPro.TextMeshProUGUI gameOver;
     [SerializeField] private TMPro.TextMeshProUGUI pause;
+    [SerializeField] private TMPro.TextMeshProUGUI musicText;
+    [SerializeField] private GameObject menuPanel;
 
     public void UpdateCurrentScore(string score)
     {
@@ -33,26 +35,44 @@ public class UIController : MonoBehaviour
     {
         gameOver.alpha = 0f;
         pause.alpha = 0f;
+        menuPanel.SetActive(false);
     }
 
     public void StartPause()
     {
-        StartCoroutine(PauseAnim());
+        //StartCoroutine(PauseAnim());
+        pause.alpha = 1f;
+        menuPanel.SetActive(true);
     }
 
     public void StopPause()
     {
-        StopAllCoroutines();
+        //StopAllCoroutines();
         pause.alpha = 0f;
+        menuPanel.SetActive(false);
     }
 
     public void StartGameOver()
     {
         gameOver.alpha = 1f;
+        menuPanel.SetActive(true);
     }
 
     public void StopGameOver()
     {
         gameOver.alpha = 0f;
+        menuPanel.SetActive(false);
+    }
+
+    public void UpdateMusicText(bool isPlaying)
+    {
+        if (isPlaying)
+        {
+            musicText.SetText("music: on");
+        }
+        else
+        {
+            musicText.SetText("music: off");
+        }
     }
 }
