@@ -13,6 +13,7 @@ public class Snake
     private float speed;
     private float speedMultiplier = 1;
     private float currentSpeed;
+    private string curModifier = "none";
 
     public Snake(Vector3 position, Heading heading, int size, float speed, GameDirector gameDirector)
     {
@@ -89,6 +90,16 @@ public class Snake
         return state;
     }
 
+    public void SetModifier(string modifier)
+    {
+        curModifier = modifier;
+    }
+
+    public string GetModifier()
+    {
+        return curModifier;
+    }
+
     public void SetState(SnakeState state)
     {
         this.state = state;
@@ -121,7 +132,11 @@ public class Snake
 
     private void Grow()
     {
-        bodyList.Add(new Body(bodyList[bodyList.Count - 1].GetPosition(), snake.transform, gameDirector.GetPrefab("BaseSprite")));
+        if (bodyList.Count + 1 >= gameDirector.GetTileCount_H() * gameDirector.GetTileCount_V())
+        {
+            gameDirector.StopGame();
+        }
+        else bodyList.Add(new Body(bodyList[bodyList.Count - 1].GetPosition(), snake.transform, gameDirector.GetPrefab("BaseSprite")));
     }
 
     public bool Move()
@@ -139,7 +154,6 @@ public class Snake
                 headPosNew = new Vector3(headPos.x, headPos.y - 1, 0);
                 break;
                 
-
             case Heading.W:
                 headPosNew = new Vector3(headPos.x - 1, headPos.y, 0);
                 break;
@@ -185,30 +199,37 @@ public class Snake
                     case FoodType.normal:
                         SetState(SnakeState.normal);
                         gameDirector.audioController.PlaySound("Sound_Apple_Normal");
+                        gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
                         break;
                     case FoodType.burn:
                         SetState(SnakeState.burn);
                         gameDirector.audioController.PlaySound("Sound_Apple_Burn");
+                        gameDirector.audioController.SetMusicPitchFade(1.1f, 0.5f);
                         break;
                     case FoodType.freeze:
                         SetState(SnakeState.freeze);
                         gameDirector.audioController.PlaySound("Sound_Apple_Freeze");
+                        gameDirector.audioController.SetMusicPitchFade(0.9f, 0.5f);
                         break;
                     case FoodType.golden:
                         SetState(SnakeState.gold);
                         gameDirector.audioController.PlaySound("Sound_Apple_Gold");
+                        gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
                         break;
                     case FoodType.ghost:
                         SetState(SnakeState.ghost);
                         gameDirector.audioController.PlaySound("Sound_Apple_Ghost");
+                        gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
                         break;
                     default:
                         break;
                 }
                 gameDirector.DeleteFood(headPosNew);
-                Grow();
+                if (curModifier != "hungry" && curModifier != "spaghetti") Grow();
                 foodEaten = true;
             }
+
+            if (curModifier == "spaghetti") Grow();
 
             for (int i = bodyList.Count - 1; i > 0; i--)
             {

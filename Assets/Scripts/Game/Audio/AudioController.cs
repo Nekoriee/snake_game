@@ -10,6 +10,32 @@ public class AudioController : MonoBehaviour
     // sources[2] = item
     // sources[3] = menu
     [SerializeField] public Dictionary<string, Sound> soundList = new Dictionary<string, Sound>();
+    public static IEnumerator StartVolumeFade(AudioSource audioSource, float duration, float targetVolume)
+    {
+        float currentTime = 0;
+        float start = audioSource.volume;
+        while (currentTime < duration)
+        {
+            currentTime += Time.unscaledTime;
+            audioSource.volume = Mathf.Lerp(start, targetVolume, currentTime / duration);
+            yield return null;
+        }
+        yield break;
+    }
+
+    public static IEnumerator StartPitchFade(AudioSource audioSource, float duration, float targetPitch)
+    {
+        float currentTime = 0;
+        float start = audioSource.pitch;
+        while (currentTime < duration)
+        {
+            currentTime += Time.unscaledTime;
+            audioSource.pitch = Mathf.Lerp(start, targetPitch, currentTime / duration);
+            yield return null;
+        }
+        yield break;
+    }
+
     void Awake()
     {
 
@@ -75,8 +101,23 @@ public class AudioController : MonoBehaviour
         sources[0].volume = volume;
     }
 
+    public void SetMusicVolumeFade(float volume, float duration)
+    {
+        StartCoroutine(StartVolumeFade(sources[0], duration, volume));
+    }
+
     public void SetMusicPitch(float pitch)
     {
         sources[0].pitch = pitch;
+    }
+
+    public void SetMusicPitchFade(float pitch, float duration)
+    {
+        StartCoroutine(StartPitchFade(sources[0], duration, pitch));
+    }
+
+    public void SetMusicDoppler(float doppler)
+    {
+        sources[0].dopplerLevel = doppler;
     }
 }

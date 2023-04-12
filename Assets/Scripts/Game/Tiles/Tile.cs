@@ -11,6 +11,7 @@ public abstract class Tile
     public abstract void SetTileState(TileState state);
     public abstract void RevertTileState();
     public abstract TileState GetTileState();
+    public abstract TileState GetTileCurState();
 
     public abstract TileType GetTileType();
 

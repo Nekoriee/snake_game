@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using SFB;
 
 public enum EditorMode { tile, spawn, trigger }
 
@@ -11,6 +13,9 @@ public class EditorDirector : MonoBehaviour
     public const int cntTiles_V = 17;
 
     public Camera mainCamera;
+    [SerializeField] private TMPro.TextMeshProUGUI textHint;
+    [SerializeField] private TMPro.TextMeshProUGUI modeHint;
+    [SerializeField] private TMPro.TextMeshProUGUI textError;
 
     MapInfo mapInfo = new MapInfo();
     [HideInInspector] public TileInfo tileInfo;
@@ -38,6 +43,7 @@ public class EditorDirector : MonoBehaviour
     {
         if (snakeReal != null)
         {
+            textError.alpha = 0f;
             spawn.x = snakeReal.snake.transform.position.x;
             spawn.y = snakeReal.snake.transform.position.y;
             spawn.rotation = snakeReal.snake.transform.rotation.eulerAngles.z;
@@ -62,13 +68,16 @@ public class EditorDirector : MonoBehaviour
             mapInfo.tiles = tilesToSave;
 
             string json = JsonUtility.ToJson(mapInfo);
-            string path = Application.dataPath + "/Resources/" + name + ".wld";
-
-            System.IO.File.Delete(path);
-            System.IO.File.WriteAllText(path, json);
-
+            string pathLevelFolder = Application.dataPath + "/Resources/Levels";
+            
+            string pathLevel = StandaloneFileBrowser.SaveFilePanel("Save .wld file", pathLevelFolder, "MyLevel", "wld");
+            if (pathLevel != "")
+            {
+                System.IO.File.Delete(pathLevel);
+                System.IO.File.WriteAllText(pathLevel, json);
+            }
         }
-        else Debug.LogError("No spawn point!");
+        else textError.alpha = 0.52f;
     }
 
     private void CheckInput()
@@ -186,22 +195,22 @@ public class EditorDirector : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Q)) currentTileId = "grass";
-        if (Input.GetKeyDown(KeyCode.W)) currentTileId = "sand";
-        if (Input.GetKeyDown(KeyCode.E)) currentTileId = "water";
-        if (Input.GetKeyDown(KeyCode.R)) currentTileId = "g2s_s";
-        if (Input.GetKeyDown(KeyCode.T)) currentTileId = "g2s_ic";
-        if (Input.GetKeyDown(KeyCode.Y)) currentTileId = "g2s_oc";
-        if (Input.GetKeyDown(KeyCode.U)) currentTileId = "s2w_s";
-        if (Input.GetKeyDown(KeyCode.I)) currentTileId = "s2w_ic";
-        if (Input.GetKeyDown(KeyCode.O)) currentTileId = "s2w_oc";
-        if (Input.GetKeyDown(KeyCode.A)) currentTileId = "grass_rock";
-        if (Input.GetKeyDown(KeyCode.S)) currentTileId = "sand_rock";
+        if (Input.GetKeyDown(KeyCode.Alpha1)) currentTileId = "grass";
+        if (Input.GetKeyDown(KeyCode.Alpha2)) currentTileId = "sand";
+        if (Input.GetKeyDown(KeyCode.Alpha3)) currentTileId = "water";
+        if (Input.GetKeyDown(KeyCode.Alpha4)) currentTileId = "g2s_s";
+        if (Input.GetKeyDown(KeyCode.Alpha5)) currentTileId = "g2s_ic";
+        if (Input.GetKeyDown(KeyCode.Alpha6)) currentTileId = "g2s_oc";
+        if (Input.GetKeyDown(KeyCode.Alpha7)) currentTileId = "s2w_s";
+        if (Input.GetKeyDown(KeyCode.Alpha8)) currentTileId = "s2w_ic";
+        if (Input.GetKeyDown(KeyCode.Alpha9)) currentTileId = "s2w_oc";
+        if (Input.GetKeyDown(KeyCode.Alpha0)) currentTileId = "grass_rock";
+        if (Input.GetKeyDown(KeyCode.Minus)) currentTileId = "sand_rock";
 
         if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "spawn";
         if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "nofood";
 
-        if (Input.GetKeyDown(KeyCode.Tab)) SaveMap("testmap");
+        if (Input.GetKeyDown(KeyCode.S)) SaveMap("MyLevel");
 
         if (Input.GetKeyDown(KeyCode.Delete) && mode == EditorMode.trigger) {
             if (tiles[currentSelectedTile].state == TileState.nofood)
@@ -213,6 +222,11 @@ public class EditorDirector : MonoBehaviour
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            SceneManager.LoadScene(0);
+        }
+
         if (Input.GetKeyDown(KeyCode.M))
         {
             int curMode = (int)mode + 1;
@@ -221,19 +235,22 @@ public class EditorDirector : MonoBehaviour
             switch (mode)
             {
                 case EditorMode.tile:
-                    Debug.Log("Tile editor");
                     snakeFake.snake.SetActive(false);
                     noFoodFake.gameObject.SetActive(false);
+                    textHint.text = "M - change mode | mouse/arrows - move | alt/rmb - rotate | space/lmb - place | 1-0,minus - tiles";
+                    modeHint.text = "mode: tile";
                     break;
                 case EditorMode.spawn:
                     snakeFake.snake.SetActive(true);
                     noFoodFake.gameObject.SetActive(false);
-                    Debug.Log("Spawn editor");
+                    textHint.text = "M - change mode | mouse/arrows - move | alt/rmb - rotate | space/lmb - place";
+                    modeHint.text = "mode: spawn";
                     break;
                 case EditorMode.trigger:
                     snakeFake.snake.SetActive(false);
                     noFoodFake.gameObject.SetActive(true);
-                    Debug.Log("Trigger editor");
+                    textHint.text = "M - change mode | mouse/arrows - move | space/lmb - place | delete - delete";
+                    modeHint.text = "mode: nofood";
                     break;
             }
         }
@@ -301,6 +318,7 @@ public class EditorDirector : MonoBehaviour
         noFoodFake.gameObject.SetActive(false);
 
         mousePrevPos = Input.mousePosition;
+        textError.alpha = 0;
     }
 
     // Update is called once per frame

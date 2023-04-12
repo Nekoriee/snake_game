@@ -35,9 +35,9 @@ public class TileStatic : Tile
         }
     }
 
-    public override void SetTileState(TileState state)
+    public override void SetTileState(TileState newState)
     {
-        curState = state;
+        curState = newState;
     }
 
     public override void RevertTileState()
@@ -45,9 +45,14 @@ public class TileStatic : Tile
         curState = state;
     }
 
-    public override TileState GetTileState()
+    public override TileState GetTileCurState()
     {
         return curState;
+    }
+
+    public override TileState GetTileState()
+    {
+        return state;
     }
 
     public override TileType GetTileType()

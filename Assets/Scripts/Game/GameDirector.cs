@@ -31,7 +31,13 @@ public class GameDirector : MonoBehaviour
 
     private Dictionary<string, Object> prefabList = new Dictionary<string, Object>();
     public TileInfo tileInfo;
+
     private string levelName = ".wld";
+    private string prefsLevelPath;
+    private float prefsSpeed = 1f;
+    private string prefsModifier = "none";
+
+    private float controlLastMove;
 
     public bool IsTileAnimated(string tileId)
     {
@@ -50,54 +56,62 @@ public class GameDirector : MonoBehaviour
 
     private void Create_PlayField()
     {
-        string path;
-        if (PlayerPrefs.HasKey("LevelPath") && PlayerPrefs.GetString("LevelPath") != "" && File.Exists(PlayerPrefs.GetString("LevelPath")))
+        if (prefsLevelPath != "" && File.Exists(prefsLevelPath))
         {
-            path = PlayerPrefs.GetString("LevelPath");
-            levelName = Path.GetFileName(path);
-            System.IO.StreamReader reader = new System.IO.StreamReader(path);
+            levelName = Path.GetFileName(prefsLevelPath);
+            System.IO.StreamReader reader = new System.IO.StreamReader(prefsLevelPath);
             MapInfo mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
-            foreach (Tile_MapInfo tile in mapInfo.tiles)
+            if (mapInfo != null)
             {
-                Vector3 pos = new Vector3(tile.x, tile.y, 0);
-
-                TileState state;
-                if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
-
-                if (IsTileAnimated(tile.tileID))
+                foreach (Tile_MapInfo tile in mapInfo.tiles)
                 {
-                    playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
-                    StartCoroutine(playField[pos].PlayAnimation());
+                    Vector3 pos = new Vector3(tile.x, tile.y, 0);
+
+                    TileState state;
+                    if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
+
+                    if (IsTileAnimated(tile.tileID))
+                    {
+                        playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+                        StartCoroutine(playField[pos].PlayAnimation());
+                    }
+                    else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
                 }
-                else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+                Heading heading = Heading.N;
+                switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
+                {
+                    case 0:
+                        heading = Heading.N;
+                        break;
+
+                    case 90:
+                        heading = Heading.W;
+                        break;
+
+                    case 180:
+                        heading = Heading.S;
+                        break;
+
+                    case 270:
+                        heading = Heading.E;
+                        break;
+
+                    default:
+                        break;
+                }
+                snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
+                snake.SetSpeedMultiplier(prefsSpeed);
+                snake.SetModifier(prefsModifier);
             }
-            Heading heading = Heading.N;
-            switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
+            else
             {
-                case 0:
-                    heading = Heading.N;
-                    break;
-
-                case 90:
-                    heading = Heading.W;
-                    break;
-
-                case 180:
-                    heading = Heading.S;
-                    break;
-
-                case 270:
-                    heading = Heading.E;
-                    break;
-
-                default:
-                    break;
+                PlayerPrefs.SetString("LevelPath", "");
+                Create_Default();
             }
-            snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
-            snake.SetSpeedMultiplier(1f);
         }
         else
         {
+            PlayerPrefs.SetString("LevelPath", "");
             Create_Default();
         }
     }
@@ -152,7 +166,8 @@ public class GameDirector : MonoBehaviour
 
         snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
 
-        snake.SetSpeedMultiplier(1f);
+        snake.SetSpeedMultiplier(prefsSpeed);
+        snake.SetModifier(prefsModifier);
     }
 
     public void ChangeGameState(GameState state)
@@ -165,8 +180,9 @@ public class GameDirector : MonoBehaviour
         return gameState;
     }
 
-    private void StopGame()
+    public void StopGame()
     {
+        audioController.PlaySound("Sound_Menu_Gameover");
         if (currentScore >= goalScore)
         {
             PlayerPrefs.SetInt("Record_" + levelName, currentScore);
@@ -174,6 +190,41 @@ public class GameDirector : MonoBehaviour
         ChangeGameState(GameState.gameover);
         audioController.StopMusic();
         ui.StartGameOver();
+    }
+
+    private void MoveSnake()
+    {
+        if (!snake.Move())
+        {
+            if (snake.GetState() != SnakeState.gold)
+            {
+                StopGame();
+            }
+            else
+            {
+                Vector3 headPos = snake.GetHeadPos();
+                bool gameOver = true;
+                for (int i = (int)headPos.x - 1; i <= (int)headPos.x + 1; i++)
+                {
+                    for (int j = (int)headPos.y - 1; j <= (int)headPos.y + 1; j++)
+                    {
+                        Vector3 tile = new Vector3(i, j, 0);
+                        if (!IsTileAWall(tile) && !IsTileOccupied(tile))
+                        {
+                            gameOver = false;
+                            break;
+                        }
+                    }
+                    if (!gameOver) break;
+                }
+                if (gameOver)
+                {
+                    audioController.PlaySound("Sound_Menu_Gameover");
+                    StopGame();
+                }
+            }
+        }
+        else snakeHeadingBeforeMove = snake.GetHeading();
     }
 
    IEnumerator Game()
@@ -185,6 +236,8 @@ public class GameDirector : MonoBehaviour
         }
         ui.UpdateCurrentScore(currentScore.ToString());
         ui.UpdateGoalScore(goalScore.ToString());
+        ui.UpdateModifierText(prefsModifier);
+        ui.UpdateSpeedText(prefsSpeed);
         if (PlayerPrefs.HasKey("Music"))
         {
             musicOn = (PlayerPrefs.GetInt("Music") > 0) ? true : false;
@@ -193,42 +246,12 @@ public class GameDirector : MonoBehaviour
         audioController.SetMusicPitch(1f);
         if (musicOn == true) audioController.PlayMusic();
         snakeHeadingBeforeMove = snake.GetHeading();
-        while (gameState != GameState.gameover)
+        while (gameState != GameState.gameover && prefsModifier != "control")
         {
             yield return new WaitForSeconds(1 / snake.GetSpeed());
-            if (!snake.Move())
-            {
-                if (snake.GetState() != SnakeState.gold)
-                {
-                    audioController.PlaySound("Sound_Menu_Gameover");
-                    StopGame();
-                }
-                else
-                {
-                    Vector3 headPos = snake.GetHeadPos();
-                    bool gameOver = true;
-                    for (int i = (int)headPos.x - 1; i <= (int)headPos.x + 1; i++)
-                    {
-                        for (int j = (int)headPos.y - 1; j <= (int)headPos.y + 1; j++)
-                        {
-                            Vector3 tile = new Vector3(i, j, 0);
-                            if (!IsTileAWall(tile) && !IsTileOccupied(tile))
-                            {
-                                gameOver = false;
-                                break;
-                            }
-                        }
-                        if (!gameOver) break;
-                    }
-                    if (gameOver)
-                    {
-                        audioController.PlaySound("Sound_Menu_Gameover");
-                        StopGame();
-                    }
-                }
-            }
-            else snakeHeadingBeforeMove = snake.GetHeading();
+            MoveSnake();
         }
+        controlLastMove = Time.time;
     }
 
     public void RestartGame()
@@ -262,13 +285,13 @@ public class GameDirector : MonoBehaviour
         {
             Time.timeScale = 0;
             ChangeGameState(GameState.paused);
-            audioController.SetMusicVolume(0.25f);
+            audioController.SetMusicVolumeFade(0.25f, 0.5f);
             ui.StartPause();
         }
         else
         {
             Time.timeScale = 1;
-            audioController.SetMusicVolume(1f);
+            audioController.SetMusicVolumeFade(1f, 0.5f);
             ChangeGameState(GameState.game);
             ui.StopPause();
         }
@@ -286,19 +309,40 @@ public class GameDirector : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.S) snake.SetHeading(Heading.N);
+            if (snakeHeadingBeforeMove != Heading.S)
+            {
+                snake.SetHeading(Heading.N);
+                if (prefsModifier == "control") MoveSnake();
+                controlLastMove = Time.time;
+            }
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.W) snake.SetHeading(Heading.E);
+            if (snakeHeadingBeforeMove != Heading.W)
+            {
+                snake.SetHeading(Heading.E);
+                if (prefsModifier == "control") MoveSnake();
+                controlLastMove = Time.time;
+            }
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.N) snake.SetHeading(Heading.S);
+            if (snakeHeadingBeforeMove != Heading.N)
+            {
+                snake.SetHeading(Heading.S);
+                if (prefsModifier == "control") MoveSnake();
+                controlLastMove = Time.time;
+            }
+                
         }
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.E) snake.SetHeading(Heading.W);
+            if (snakeHeadingBeforeMove != Heading.E)
+            {
+                snake.SetHeading(Heading.W);
+                if (prefsModifier == "control") MoveSnake();
+                controlLastMove = Time.time;
+            }
         }
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Pause))
         {
@@ -370,6 +414,15 @@ public class GameDirector : MonoBehaviour
         snake.OccupyTiles();
     }
 
+    public TileState GetTileCurState(Vector3 tilePos)
+    {
+        if (playField.ContainsKey(tilePos))
+        {
+            return playField[tilePos].GetTileCurState();
+        }
+        else return TileState.nul;
+    }
+
     public TileState GetTileState(Vector3 tilePos)
     {
         if (playField.ContainsKey(tilePos))
@@ -381,7 +434,14 @@ public class GameDirector : MonoBehaviour
 
     public bool IsTileOccupied(Vector3 tilePos)
     {
-        if (GetTileState(tilePos) == TileState.occupied) return true;
+        if (GetTileCurState(tilePos) == TileState.occupied) return true;
+        else return false;
+    }
+
+    public bool IsTileNoFood(Vector3 tilePos)
+    {
+        //Debug.Log(tilePos.x + " " + tilePos.y + " " + GetTileState(tilePos).ToString());
+        if (GetTileState(tilePos) == TileState.nofood) return true;
         else return false;
     }
 
@@ -410,17 +470,63 @@ public class GameDirector : MonoBehaviour
         else return FoodType.nofood;
     }
 
+    private List<Vector3> GetAvailableTiles()
+    {
+        List<Vector3> availableTiles = new List<Vector3>();
+        for (int i = -9; i < 10; i++)
+        {
+            for (int j = -8; j < 9; j++)
+            {
+                Vector3 pos = new Vector3(i, j, 0);
+                if (!IsTileOccupied(pos) && !IsTileAWall(pos) && !IsTileNoFood(pos))
+                {
+                    availableTiles.Add(new Vector3(i, j, 0));
+                }
+            }
+        }
+        return availableTiles;
+    }
+
     private bool CanCreateFood(Vector3 tilePos) // can create if tile is ground and free
     {
         if (playField.ContainsKey(tilePos))
         {
-            if (playField[tilePos].GetTileState() == TileState.free &&
+            if (playField[tilePos].GetTileCurState() == TileState.free && playField[tilePos].GetTileState() == TileState.free &&
                 playField[tilePos].GetTileType() != TileType.wall && playField[tilePos].GetTileType() != TileType.nul) return true;
         }
         return false;
     }
 
     public void CreateFood()
+    {
+        List<Vector3> availableTiles = GetAvailableTiles();
+        if (availableTiles.Count > 0)
+        {
+            Vector3 foodPos = availableTiles[Random.Range(0, availableTiles.Count)];
+
+            float random = Random.Range(0f, 1f);
+            if (random <= foodChance["ghost"])
+            {
+                playField[foodPos].CreateFood(FoodType.ghost);
+            }
+            else if (random > foodChance["ghost"] && random <= foodChance["gold"])
+            {
+                playField[foodPos].CreateFood(FoodType.golden);
+            }
+            else if (random > foodChance["gold"] && random <= foodChance["freeze"])
+            {
+                playField[foodPos].CreateFood(FoodType.freeze);
+            }
+            else if (random > foodChance["freeze"] && random <= foodChance["burn"])
+            {
+                playField[foodPos].CreateFood(FoodType.burn);
+            }
+            else playField[foodPos].CreateFood(FoodType.normal);
+        }
+        else StopGame();
+    }
+
+    public void CreateFood_old()
     {
         Vector3 foodPos;
         do
@@ -432,17 +538,20 @@ public class GameDirector : MonoBehaviour
         if (random <= foodChance["ghost"])
         {
             playField[foodPos].CreateFood(FoodType.ghost);
-        } else if (random > foodChance["ghost"] && random <= foodChance["gold"])
+        }
+        else if (random > foodChance["ghost"] && random <= foodChance["gold"])
         {
             playField[foodPos].CreateFood(FoodType.golden);
-        } else if (random > foodChance["gold"] && random <= foodChance["freeze"])
+        }
+        else if (random > foodChance["gold"] && random <= foodChance["freeze"])
         {
             playField[foodPos].CreateFood(FoodType.freeze);
-        } else if (random > foodChance["freeze"] && random <= foodChance["burn"])
+        }
+        else if (random > foodChance["freeze"] && random <= foodChance["burn"])
         {
             playField[foodPos].CreateFood(FoodType.burn);
-        } else playField[foodPos].CreateFood(FoodType.normal);
-
+        }
+        else playField[foodPos].CreateFood(FoodType.normal);
     }
 
     public void DeleteFood(Vector3 tilePos)
@@ -451,6 +560,24 @@ public class GameDirector : MonoBehaviour
         {
             playField[tilePos].DeleteFood();
             AddScore(1);
+        }
+    }
+
+    private void CheckControlGameover()
+    {
+        if (prefsModifier == "control" && gameState == GameState.game)
+        {
+            if (Time.time - controlLastMove > (2f - prefsSpeed))
+            {
+                ui.UpdateControlTimer("");
+                StopGame();
+            }
+            else
+            {
+                float timer = (2f - prefsSpeed) - (Time.time - controlLastMove);
+                if (timer >= 0f) ui.UpdateControlTimer(timer.ToString("F2"));
+                else ui.UpdateControlTimer("0.00");
+            }
         }
     }
 
@@ -469,22 +596,96 @@ public class GameDirector : MonoBehaviour
         return cntTiles_V;
     }
 
+    public void GetPlayerPrefs()
+    {
+        if (PlayerPrefs.HasKey("LevelPath"))
+        {
+            prefsLevelPath = PlayerPrefs.GetString("LevelPath");
+        }
+        if (PlayerPrefs.HasKey("Speed") && PlayerPrefs.GetFloat("Speed") > 0f)
+        {
+            prefsSpeed = PlayerPrefs.GetFloat("Speed");
+        }
+        if (PlayerPrefs.HasKey("Modifier"))
+        {
+            prefsModifier = PlayerPrefs.GetString("Modifier");
+        }
+    }
+
+    public void SetFoodChances()
+    {
+        Dictionary<string, float> baseChance = new Dictionary<string, float>();
+        baseChance.Add("burn", 0.45f); // 15%
+        baseChance.Add("freeze", 0.3f); // 15%
+        baseChance.Add("gold", 0.15f); // 10%
+        baseChance.Add("ghost", 0.05f); // 5%
+        // standard apple: 55% 
+
+        switch (prefsModifier)
+        {
+            case "classic":
+                foodChance.Add("burn", -1f);
+                foodChance.Add("freeze", -1f);
+                foodChance.Add("gold", -1f);
+                foodChance.Add("ghost", -1f);
+                // standard apple: 100%
+                break;
+            case "chill":
+                foodChance.Add("burn", -1f);
+                foodChance.Add("freeze", 1f); // 100%
+                foodChance.Add("gold", -1f);
+                foodChance.Add("ghost", -1f);
+                break;
+            case "chili_pepper":
+                foodChance.Add("burn", 1f); // 100%
+                foodChance.Add("freeze", -1f);
+                foodChance.Add("gold", -1f);
+                foodChance.Add("ghost", -1f);
+                break;
+            case "gold":
+                foodChance.Add("burn", -1f);
+                foodChance.Add("freeze", -1f);
+                foodChance.Add("gold", 1f); // 100%
+                foodChance.Add("ghost", -1f);
+                break;
+            case "spaghetti":
+                foodChance.Add("burn", baseChance["burn"] - baseChance["ghost"]);
+                foodChance.Add("freeze", baseChance["freeze"] - baseChance["ghost"]);
+                foodChance.Add("gold", baseChance["gold"] - baseChance["ghost"]);
+                foodChance.Add("ghost", -1f);
+                break;
+            case "control":
+                foodChance.Add("burn", -1f);
+                foodChance.Add("freeze", -1f);
+                foodChance.Add("gold", baseChance["gold"]);
+                foodChance.Add("ghost", baseChance["ghost"]);
+                break;
+            default:
+                foodChance = baseChance;
+                break;
+        }
+    }
+
     private void Awake()
     {
         Application.targetFrameRate = 120;
+        GetPlayerPrefs();
+
+        audioController.SetMusicPitch(1f);
         
         prefabList.Add("BaseSprite", Resources.Load<Object>("Prefabs/Game/BaseSprite"));
         prefabList.Add("BaseTile", Resources.Load<Object>("Prefabs/Game/BaseTile"));
 
-        foodChance.Add("burn", 0.45f);
-        foodChance.Add("freeze", 0.3f);
-        foodChance.Add("gold", 0.15f);
-        foodChance.Add("ghost", 0.05f);
+        SetFoodChances();
 
         string path = Application.dataPath + "/Resources/tileInfo.json";
         System.IO.StreamReader reader = new System.IO.StreamReader(path);
         tileInfo = JsonUtility.FromJson<TileInfo>(reader.ReadToEnd());
         reader.Close();
+        if (tileInfo == null)
+        {
+            SceneManager.LoadScene(0);
+        }
     }
 
     void Start()
@@ -497,5 +698,6 @@ public class GameDirector : MonoBehaviour
     private void Update()
     {
         CheckInput();
+        CheckControlGameover();
     }
 }

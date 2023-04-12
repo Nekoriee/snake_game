@@ -64,9 +64,14 @@ public class TileAnimated : Tile
         curState = state;
     }
 
-    public override TileState GetTileState()
+    public override TileState GetTileCurState()
     {
         return curState;
+    }
+
+    public override TileState GetTileState()
+    {
+        return state;
     }
 
     public override TileType GetTileType()
