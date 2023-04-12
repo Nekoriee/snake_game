@@ -2187,6 +2187,8 @@ MonoBehaviour:
   snakeSize: 3
   snakeHeading: 3
   ui: {fileID: 1585607256}
+  tileInfoJson: {fileID: 4900000, guid: 05fe285134087544bbd3befd7497ab9b, type: 3}
+  defaultLevelJson: {fileID: 4900000, guid: ab32d30596e87e04184328da83817cfc, type: 3}
   audioController: {fileID: 1639806113}
   tileInfo:
     static_tiles: []

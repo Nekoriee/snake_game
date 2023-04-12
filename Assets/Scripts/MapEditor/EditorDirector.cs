@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SFB;
@@ -16,6 +17,7 @@ public class EditorDirector : MonoBehaviour
     [SerializeField] private TMPro.TextMeshProUGUI textHint;
     [SerializeField] private TMPro.TextMeshProUGUI modeHint;
     [SerializeField] private TMPro.TextMeshProUGUI textError;
+    [SerializeField] private TextAsset tileInfoJson;
 
     MapInfo mapInfo = new MapInfo();
     [HideInInspector] public TileInfo tileInfo;
@@ -39,7 +41,7 @@ public class EditorDirector : MonoBehaviour
 
     int availableNoFoodTiles;
 
-    public void SaveMap(string name)
+    public void SaveMap()
     {
         if (snakeReal != null)
         {
@@ -63,16 +65,18 @@ public class EditorDirector : MonoBehaviour
                 }
             }
 
-            mapInfo.map_name = name;
-            mapInfo.spawn = spawn;
-            mapInfo.tiles = tilesToSave;
-
-            string json = JsonUtility.ToJson(mapInfo);
             string pathLevelFolder = Application.dataPath + "/Resources/Levels";
-            
             string pathLevel = StandaloneFileBrowser.SaveFilePanel("Save .wld file", pathLevelFolder, "MyLevel", "wld");
+            
             if (pathLevel != "")
             {
+                //mapInfo.map_name = Path.GetFileNameWithoutExtension(pathLevel);
+                mapInfo.map_name = "";
+                mapInfo.spawn = spawn;
+                mapInfo.tiles = tilesToSave;
+
+                string json = JsonUtility.ToJson(mapInfo);
+
                 System.IO.File.Delete(pathLevel);
                 System.IO.File.WriteAllText(pathLevel, json);
             }
@@ -210,7 +214,7 @@ public class EditorDirector : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "spawn";
         if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "nofood";
 
-        if (Input.GetKeyDown(KeyCode.S)) SaveMap("MyLevel");
+        if (Input.GetKeyDown(KeyCode.S)) SaveMap();
 
         if (Input.GetKeyDown(KeyCode.Delete) && mode == EditorMode.trigger) {
             if (tiles[currentSelectedTile].state == TileState.nofood)
@@ -283,10 +287,7 @@ public class EditorDirector : MonoBehaviour
         prefabList.Add("BaseSprite", Resources.Load<Object>("Prefabs/Game/BaseSprite"));
         prefabList.Add("BaseTile", Resources.Load<Object>("Prefabs/Game/BaseTile"));
 
-        string path = Application.dataPath + "/Resources/tileInfo.json";
-        System.IO.StreamReader reader = new System.IO.StreamReader(path);
-        tileInfo = JsonUtility.FromJson<TileInfo>(reader.ReadToEnd());
-        reader.Close();
+        tileInfo = JsonUtility.FromJson<TileInfo>(tileInfoJson.text);
     }
 
     public int GetGroundTilesCount()

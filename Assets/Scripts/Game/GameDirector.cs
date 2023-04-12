@@ -14,6 +14,8 @@ public class GameDirector : MonoBehaviour
     [SerializeField] private int snakeSize = 3;
     [SerializeField] private Heading snakeHeading = Heading.E;
     [SerializeField] private UIController ui;
+    [SerializeField] private TextAsset tileInfoJson;
+    [SerializeField] private TextAsset defaultLevelJson;
     public AudioController audioController;
 
     const float snakeSpeed = 5f;
@@ -32,12 +34,34 @@ public class GameDirector : MonoBehaviour
     private Dictionary<string, Object> prefabList = new Dictionary<string, Object>();
     public TileInfo tileInfo;
 
-    private string levelName = ".wld";
+    private int levelID;
     private string prefsLevelPath;
     private float prefsSpeed = 1f;
     private string prefsModifier = "none";
 
     private float controlLastMove;
+
+    private int GetLevelID(string levelPath)
+    {
+        System.IO.StreamReader reader = new System.IO.StreamReader(levelPath);
+        string levelString = reader.ReadToEnd();
+        int id = 0;
+        foreach (char symbol in levelString)
+        {
+            id += (int)char.GetNumericValue(symbol);
+        }
+        return id;
+    }
+
+    private int GetLevelIDFromJson(string levelString)
+    {
+        int id = 0;
+        foreach (char symbol in levelString)
+        {
+            id += (int)char.GetNumericValue(symbol);
+        }
+        return id;
+    }
 
     public bool IsTileAnimated(string tileId)
     {
@@ -56,64 +80,66 @@ public class GameDirector : MonoBehaviour
 
     private void Create_PlayField()
     {
+        MapInfo mapInfo = JsonUtility.FromJson<MapInfo>(defaultLevelJson.text);
+        levelID = GetLevelIDFromJson(defaultLevelJson.text);
         if (prefsLevelPath != "" && File.Exists(prefsLevelPath))
         {
-            levelName = Path.GetFileName(prefsLevelPath);
             System.IO.StreamReader reader = new System.IO.StreamReader(prefsLevelPath);
-            MapInfo mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
-            if (mapInfo != null)
+            levelID = GetLevelID(prefsLevelPath);
+            mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
+            if (mapInfo == null)
             {
-                foreach (Tile_MapInfo tile in mapInfo.tiles)
+                mapInfo = JsonUtility.FromJson<MapInfo>(defaultLevelJson.text);
+                levelID = GetLevelIDFromJson(defaultLevelJson.text);
+                PlayerPrefs.SetString("LevelPath", "");
+            }
+        }
+        else PlayerPrefs.SetString("LevelPath", "");
+        foreach (Tile_MapInfo tile in mapInfo.tiles)
+        {
+            Vector3 pos = new Vector3(tile.x, tile.y, 0);
+
+            TileState state;
+            if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
+
+            if (IsTileAnimated(tile.tileID))
+            {
+                if (!playField.ContainsKey(pos))
                 {
-                    Vector3 pos = new Vector3(tile.x, tile.y, 0);
-
-                    TileState state;
-                    if (!System.Enum.TryParse<TileState>(tile.state, out state)) state = TileState.free;
-
-                    if (IsTileAnimated(tile.tileID))
-                    {
-                        playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
-                        StartCoroutine(playField[pos].PlayAnimation());
-                    }
-                    else playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+                    playField.Add(pos, new TileAnimated(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
+                    StartCoroutine(playField[pos].PlayAnimation());
                 }
-                Heading heading = Heading.N;
-                switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
-                {
-                    case 0:
-                        heading = Heading.N;
-                        break;
-
-                    case 90:
-                        heading = Heading.W;
-                        break;
-
-                    case 180:
-                        heading = Heading.S;
-                        break;
-
-                    case 270:
-                        heading = Heading.E;
-                        break;
-
-                    default:
-                        break;
-                }
-                snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
-                snake.SetSpeedMultiplier(prefsSpeed);
-                snake.SetModifier(prefsModifier);
             }
             else
             {
-                PlayerPrefs.SetString("LevelPath", "");
-                Create_Default();
+                if (!playField.ContainsKey(pos)) playField.Add(pos, new TileStatic(pos, tile.tileID, tile.rotation, transform, state, this, prefabList["BaseTile"]));
             }
         }
-        else
+        Heading heading = Heading.N;
+        switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
         {
-            PlayerPrefs.SetString("LevelPath", "");
-            Create_Default();
+            case 0:
+                heading = Heading.N;
+                break;
+
+            case 90:
+                heading = Heading.W;
+                break;
+
+            case 180:
+                heading = Heading.S;
+                break;
+
+            case 270:
+                heading = Heading.E;
+                break;
+
+            default:
+                break;
         }
+        snake = new Snake(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, snakeSpeed, this);
+        snake.SetSpeedMultiplier(prefsSpeed);
+        snake.SetModifier(prefsModifier);
     }
 
     //private void Create_DebugField()
@@ -185,7 +211,7 @@ public class GameDirector : MonoBehaviour
         audioController.PlaySound("Sound_Menu_Gameover");
         if (currentScore >= goalScore)
         {
-            PlayerPrefs.SetInt("Record_" + levelName, currentScore);
+            PlayerPrefs.SetInt(levelID.ToString() + prefsSpeed.ToString() + prefsModifier, currentScore);
         }
         ChangeGameState(GameState.gameover);
         audioController.StopMusic();
@@ -230,9 +256,10 @@ public class GameDirector : MonoBehaviour
    IEnumerator Game()
     {
         CreateFood();
-        if (PlayerPrefs.HasKey("Record_" + levelName) && PlayerPrefs.GetInt("Record_" + levelName) > 0)
+        if (PlayerPrefs.HasKey(levelID.ToString() + prefsSpeed.ToString() + prefsModifier) && 
+            PlayerPrefs.GetInt(levelID.ToString() + prefsSpeed.ToString() + prefsModifier) > 0)
         {
-            goalScore = PlayerPrefs.GetInt("Record_" + levelName);
+            goalScore = PlayerPrefs.GetInt(levelID.ToString() + prefsSpeed.ToString() + prefsModifier);
         }
         ui.UpdateCurrentScore(currentScore.ToString());
         ui.UpdateGoalScore(goalScore.ToString());
@@ -678,14 +705,7 @@ public class GameDirector : MonoBehaviour
 
         SetFoodChances();
 
-        string path = Application.dataPath + "/Resources/tileInfo.json";
-        System.IO.StreamReader reader = new System.IO.StreamReader(path);
-        tileInfo = JsonUtility.FromJson<TileInfo>(reader.ReadToEnd());
-        reader.Close();
-        if (tileInfo == null)
-        {
-            SceneManager.LoadScene(0);
-        }
+        tileInfo = JsonUtility.FromJson<TileInfo>(tileInfoJson.text);
     }
 
     void Start()
