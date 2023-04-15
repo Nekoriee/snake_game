@@ -39,7 +39,7 @@ public class EditorDirector : MonoBehaviour
 
     NoFood_Editor noFoodFake;
 
-    int availableNoFoodTiles;
+    int availableNoFoodTiles = cntTiles_H * cntTiles_V;
 
     public void SaveMap()
     {
@@ -171,7 +171,7 @@ public class EditorDirector : MonoBehaviour
 
                         tiles.Add(currentSelectedTile, new Tile_Editor(currentSelectedTile, currentTileId, new Vector3(rotation, 270f, 90f), transform, this, prefabList["BaseTile"]));
 
-                        availableNoFoodTiles = GetGroundTilesCount() / 2;
+                        //availableNoFoodTiles = GetGroundTilesCount() / 2;
                     }
                     break;
 
@@ -302,6 +302,7 @@ public class EditorDirector : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Cursor.visible = true;
         for (int i = 0; i < cntTiles_V; i++)
         {
             for (int j = 0; j < cntTiles_H; j++)

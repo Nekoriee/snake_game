@@ -121,7 +121,7 @@ public class MenuManager : MonoBehaviour
                 modifierText.text = "Hot Chili Apple";
                 break;
             case "gold":
-                modifierText.text = "Gold of War";
+                modifierText.text = "Goldlike";
                 break;
             case "hungry":
                 modifierText.text = "Hungry";
@@ -199,6 +199,7 @@ public class MenuManager : MonoBehaviour
         prefsModifier = "none";
         prefsSpeed = 1f;
         musicOn = true;
+        PlayerPrefs.SetInt("Music", 1);
         audioController.PlayMusic();
         musicText.SetText("music: on");
         UpdateModifierText(prefsModifier);
@@ -212,6 +213,7 @@ public class MenuManager : MonoBehaviour
         UpdateModifierText(prefsModifier);
         UpdateSpeedText(prefsSpeed);
         OpenOptions(false);
+        Cursor.visible = true;
     }
 
     private void Update()

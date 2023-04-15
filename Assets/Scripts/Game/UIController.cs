@@ -49,7 +49,7 @@ public class UIController : MonoBehaviour
     public void StartPause()
     {
         //StartCoroutine(PauseAnim());
-        pause.alpha = 0.6f;
+        pause.alpha = 0.52f;
         menuPanel.SetActive(true);
     }
 
@@ -62,7 +62,7 @@ public class UIController : MonoBehaviour
 
     public void StartGameOver()
     {
-        gameOver.alpha = 0.6f;
+        gameOver.alpha = 0.52f;
         menuPanel.SetActive(true);
     }
 
@@ -98,7 +98,7 @@ public class UIController : MonoBehaviour
                 modifierText.text = "modifier: Hot Chili Apple";
                 break;
             case "gold":
-                modifierText.text = "modifier: Gold of War";
+                modifierText.text = "modifier: Goldlike";
                 break;
             case "hungry":
                 modifierText.text = "modifier: Hungry";

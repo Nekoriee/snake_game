@@ -211,7 +211,7 @@ public class GameDirector : MonoBehaviour
         audioController.PlaySound("Sound_Menu_Gameover");
         if (currentScore >= goalScore)
         {
-            PlayerPrefs.SetInt(levelID.ToString() + prefsSpeed.ToString() + prefsModifier, currentScore);
+            PlayerPrefs.SetInt(levelID.ToString() + prefsModifier, currentScore);
         }
         ChangeGameState(GameState.gameover);
         audioController.StopMusic();
@@ -256,10 +256,10 @@ public class GameDirector : MonoBehaviour
    IEnumerator Game()
     {
         CreateFood();
-        if (PlayerPrefs.HasKey(levelID.ToString() + prefsSpeed.ToString() + prefsModifier) && 
-            PlayerPrefs.GetInt(levelID.ToString() + prefsSpeed.ToString() + prefsModifier) > 0)
+        if (PlayerPrefs.HasKey(levelID.ToString() + prefsModifier) && 
+            PlayerPrefs.GetInt(levelID.ToString() + prefsModifier) > 0)
         {
-            goalScore = PlayerPrefs.GetInt(levelID.ToString() + prefsSpeed.ToString() + prefsModifier);
+            goalScore = PlayerPrefs.GetInt(levelID.ToString() + prefsModifier);
         }
         ui.UpdateCurrentScore(currentScore.ToString());
         ui.UpdateGoalScore(goalScore.ToString());
@@ -713,11 +713,14 @@ public class GameDirector : MonoBehaviour
         Create_PlayField();
         Pause(false);
         StartCoroutine(Game());
+        Cursor.visible = false;
     }
 
     private void Update()
     {
         CheckInput();
         CheckControlGameover();
+        if (gameState == GameState.game) Cursor.visible = false;
+        else Cursor.visible = true;
     }
 }
