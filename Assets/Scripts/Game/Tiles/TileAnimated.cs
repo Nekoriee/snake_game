@@ -54,12 +54,12 @@ public class TileAnimated : Tile
         }
     }
 
-    public override void SetTileState(TileState state)
+    public override void SetTileCurState(TileState state)
     {
         curState = state;
     }
 
-    public override void RevertTileState()
+    public override void RevertTileCurState()
     {
         curState = state;
     }
@@ -69,7 +69,7 @@ public class TileAnimated : Tile
         return curState;
     }
 
-    public override TileState GetTileState()
+    public override TileState GetTileBaseState()
     {
         return state;
     }
@@ -86,6 +86,11 @@ public class TileAnimated : Tile
         foodObject.SetSortingLayer("Item");
         switch (type)
         {
+            case FoodType.drunk:
+                if (this.type != TileType.water) foodObject.SetTextureOffset(new Vector2(0.4f, 0));
+                else foodObject.SetTextureOffset(new Vector2(0, 0.2f));
+                SetFoodType(FoodType.drunk);
+                break;
             case FoodType.normal:
                 if (this.type != TileType.water) foodObject.SetTextureOffset(new Vector2(0, 0.4f));
                 else foodObject.SetTextureOffset(new Vector2(0, 0.2f));
@@ -116,6 +121,12 @@ public class TileAnimated : Tile
 
     }
 
+    public override bool HasFood()
+    {
+        if (foodObject == null) return false;
+        else return true;
+    }
+
     public override void DeleteFood()
     {
         if (foodObject != null) Transform.Destroy(foodObject);
@@ -130,6 +141,11 @@ public class TileAnimated : Tile
     private void SetFoodType(FoodType type)
     {
         foodType = type;
+    }
+
+    public override Quaternion GetTileRotation()
+    {
+        return gameObject.transform.rotation;
     }
 }
 

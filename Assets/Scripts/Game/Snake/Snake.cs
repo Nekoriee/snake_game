@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum SnakeState {normal, burn, freeze, gold, ghost }
+public enum SnakeState {normal, burn, freeze, gold, ghost, drunk }
 
 public class Snake
 {
@@ -139,34 +139,131 @@ public class Snake
         else bodyList.Add(new Body(bodyList[bodyList.Count - 1].GetPosition(), snake.transform, gameDirector.GetPrefab("BaseSprite")));
     }
 
-    public bool Move()
+    public void EatFood(FoodType foodType)
     {
-        Vector3 headPos = bodyList[0].GetPosition(); ;
-        Vector3 headPosNew = headPos;
+        switch (foodType)
+        {
+            case FoodType.normal:
+                SetState(SnakeState.normal);
+                gameDirector.audioController.PlaySound("Sound_Apple_Normal");
+                gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
+                break;
+            case FoodType.burn:
+                SetState(SnakeState.burn);
+                gameDirector.audioController.PlaySound("Sound_Apple_Burn");
+                gameDirector.audioController.SetMusicPitchFade(1.1f, 0.5f);
+                break;
+            case FoodType.freeze:
+                SetState(SnakeState.freeze);
+                gameDirector.audioController.PlaySound("Sound_Apple_Freeze");
+                gameDirector.audioController.SetMusicPitchFade(0.9f, 0.5f);
+                break;
+            case FoodType.drunk:
+                SetState(SnakeState.drunk);
+                gameDirector.audioController.PlaySound("Sound_Apple_Drunk");
+                gameDirector.audioController.SetMusicPitchSine(0.1f);
+                break;
+            case FoodType.golden:
+                SetState(SnakeState.gold);
+                gameDirector.audioController.PlaySound("Sound_Apple_Gold");
+                gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
+                break;
+            case FoodType.ghost:
+                SetState(SnakeState.ghost);
+                gameDirector.audioController.PlaySound("Sound_Apple_Ghost");
+                gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
+                break;
+            default:
+                break;
+        }
+        UpdateSprites();
+    }
 
-        switch (bodyList[0].GetHeading())
+    private Vector3 GetNextPos(Vector3 posCurrent, Heading heading)
+    {
+        Vector3 posNew = posCurrent;
+        switch (heading)
         {
             case Heading.N:
-                headPosNew = new Vector3(headPos.x, headPos.y + 1, 0);
+                posNew = new Vector3(posCurrent.x, posCurrent.y + 1, 0);
                 break;
 
             case Heading.S:
-                headPosNew = new Vector3(headPos.x, headPos.y - 1, 0);
+                posNew = new Vector3(posCurrent.x, posCurrent.y - 1, 0);
                 break;
-                
+
             case Heading.W:
-                headPosNew = new Vector3(headPos.x - 1, headPos.y, 0);
+                posNew = new Vector3(posCurrent.x - 1, posCurrent.y, 0);
                 break;
 
             case Heading.E:
-                headPosNew = new Vector3(headPos.x + 1, headPos.y, 0);
+                posNew = new Vector3(posCurrent.x + 1, posCurrent.y, 0);
                 break;
         }
+        return posNew;
+    }
+
+    public bool Move()
+    {
+        Vector3 headPos = bodyList[0].GetPosition(); ;
+        Vector3 headPosNew = GetNextPos(headPos, bodyList[0].GetHeading());
 
         if ((gameDirector.IsTileAWall(headPosNew) == false &&
-            gameDirector.IsTileOccupied(headPosNew) == false) || state == SnakeState.ghost)
+            gameDirector.IsTileOccupied(headPosNew) == false &&
+            gameDirector.GetTileType(headPosNew) != TileType.cliff &&
+            gameDirector.GetTileType(headPosNew) != TileType.portal)
+            || state == SnakeState.ghost
+            || gameDirector.GetTileType(headPosNew) == TileType.portal
+            || (gameDirector.GetTileType(headPosNew) == TileType.cliff 
+            && 
+            (
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).x * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).x * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).y * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).y * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).z * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).z * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).w * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).w * 10f) * 0.1f * -1
+            ||
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).x * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).x * 10f) * 0.1f
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).y * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).y * 10f) * 0.1f
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).z * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).z * 10f) * 0.1f
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).w * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).w * 10f) * 0.1f
+            ||
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).x * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).x * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).y * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).y * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).z * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).z * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).w * 10f) * 0.1f
+            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).w * 10f) * 0.1f * -1
+            )
+            ))
         {
-
+            if (gameDirector.GetTileType(headPosNew) == TileType.portal)
+            {
+                Vector3 headPosAfterPortal = gameDirector.GetRandomPortal(headPosNew);
+                if (headPosAfterPortal != headPosNew)
+                {
+                    headPosNew = GetNextPos(headPosAfterPortal, bodyList[0].GetHeading());
+                    gameDirector.audioController.PlaySound("Sound_Portal");
+                }
+            }
             if (state == SnakeState.ghost)
             {
                 switch (bodyList[0].GetHeading())
@@ -194,37 +291,8 @@ public class Snake
             FoodType foodType = gameDirector.GetFoodType(headPosNew);
             if (foodType != FoodType.nofood)
             {
-                switch (foodType)
-                {
-                    case FoodType.normal:
-                        SetState(SnakeState.normal);
-                        gameDirector.audioController.PlaySound("Sound_Apple_Normal");
-                        gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
-                        break;
-                    case FoodType.burn:
-                        SetState(SnakeState.burn);
-                        gameDirector.audioController.PlaySound("Sound_Apple_Burn");
-                        gameDirector.audioController.SetMusicPitchFade(1.1f, 0.5f);
-                        break;
-                    case FoodType.freeze:
-                        SetState(SnakeState.freeze);
-                        gameDirector.audioController.PlaySound("Sound_Apple_Freeze");
-                        gameDirector.audioController.SetMusicPitchFade(0.9f, 0.5f);
-                        break;
-                    case FoodType.golden:
-                        SetState(SnakeState.gold);
-                        gameDirector.audioController.PlaySound("Sound_Apple_Gold");
-                        gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
-                        break;
-                    case FoodType.ghost:
-                        SetState(SnakeState.ghost);
-                        gameDirector.audioController.PlaySound("Sound_Apple_Ghost");
-                        gameDirector.audioController.SetMusicPitchFade(1f, 0.5f);
-                        break;
-                    default:
-                        break;
-                }
-                gameDirector.DeleteFood(headPosNew);
+                EatFood(foodType);
+                gameDirector.DeleteAllFood();
                 if (curModifier != "hungry" && curModifier != "spaghetti") Grow();
                 foodEaten = true;
             }
@@ -241,10 +309,29 @@ public class Snake
             gameDirector.UpdateTiles();
             UpdateSprites();
             if (foodEaten) gameDirector.CreateFood();
-            gameDirector.audioController.PlaySound("Sound_Snake_Move");
+            if (gameDirector.GetTileType(headPosNew) == TileType.ice && state != SnakeState.ghost)
+            {
+                gameDirector.audioController.PlaySound("Sound_Snake_Move_Ice");
+            }
+            else if (gameDirector.GetTileType(headPosNew) == TileType.cliff && state != SnakeState.ghost)
+            {
+                gameDirector.audioController.PlaySound("Sound_Snake_Fall");
+            }
+            else if (gameDirector.GetTileType(headPosNew) == TileType.water && state != SnakeState.ghost)
+            {
+                gameDirector.audioController.PlaySound("Sound_Snake_Move_Water");
+            }
+            else
+            {
+                gameDirector.audioController.PlaySound("Sound_Snake_Move");
+            }
+            
 
             return true;
         }
-        else return false;
+        else
+        {
+            return false;
+        }
     }
 }

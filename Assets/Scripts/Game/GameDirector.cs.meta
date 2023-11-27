@@ -3,7 +3,11 @@ guid: 537ea6bd200e5e74cbb5648dbe5ce37e
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - ui: {instanceID: 0}
+  - tileInfoJson: {instanceID: 0}
+  - defaultLevelJson: {instanceID: 0}
+  - audioController: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

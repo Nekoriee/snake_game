@@ -11,7 +11,7 @@ public class Snake_Editor
     public Snake_Editor(Vector3 position, Heading heading, int size, EditorDirector editorDirector, Object prefab)
     {
         snake = new GameObject("Snake");
-        bodyList.Add(new SnakeBody_Editor("head", position, snake.transform, prefab));
+        bodyList.Add(new SnakeBody_Editor("head", position, snake.transform, heading, prefab));
 
         for (int i = 1; i < size; i++)
         {
@@ -31,7 +31,7 @@ public class Snake_Editor
                     bodyPos = new Vector3(position.x - i, position.y, 0);
                     break;
             }
-            bodyList.Add(new SnakeBody_Editor("body", bodyPos, snake.transform, prefab));
+            bodyList.Add(new SnakeBody_Editor("body", bodyPos, snake.transform, Heading.N, prefab));
         }
         this.editorDirector = editorDirector;
         UpdateSprites();

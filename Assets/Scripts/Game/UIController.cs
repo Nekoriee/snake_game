@@ -30,15 +30,6 @@ public class UIController : MonoBehaviour
         goalScore.text = "Record: " + score;
     }
 
-    public IEnumerator PauseAnim()
-    {
-        while (true)
-        {
-            pause.alpha = 1f - pause.alpha;
-            yield return new WaitForSecondsRealtime(0.5f);
-        }
-    }
-
     private void Awake()
     {
         gameOver.alpha = 0f;
@@ -108,6 +99,9 @@ public class UIController : MonoBehaviour
                 break;
             case "control":
                 modifierText.text = "modifier: Control";
+                break;
+            case "double":
+                modifierText.text = "modifier: Double";
                 break;
             default:
                 modifierText.text = "modifier: None";

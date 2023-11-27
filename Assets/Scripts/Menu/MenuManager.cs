@@ -102,9 +102,11 @@ public class MenuManager : MonoBehaviour
         modifierList.Add("chill");
         modifierList.Add("chili_pepper");
         modifierList.Add("gold");
+        modifierList.Add("drunk");
         modifierList.Add("hungry");
         modifierList.Add("spaghetti");
         modifierList.Add("control");
+        modifierList.Add("double");
     }
 
     private void UpdateModifierText(string modifier)
@@ -131,6 +133,12 @@ public class MenuManager : MonoBehaviour
                 break;
             case "control":
                 modifierText.text = "Control";
+                break;
+            case "double":
+                modifierText.text = "Double";
+                break;
+            case "drunk":
+                modifierText.text = "Tipsy";
                 break;
             default:
                 modifierText.text = "None";

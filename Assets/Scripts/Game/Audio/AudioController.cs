@@ -10,6 +10,8 @@ public class AudioController : MonoBehaviour
     // sources[2] = item
     // sources[3] = menu
     [SerializeField] public Dictionary<string, Sound> soundList = new Dictionary<string, Sound>();
+
+    private static bool bSineActive = false;
     public static IEnumerator StartVolumeFade(AudioSource audioSource, float duration, float targetVolume)
     {
         float currentTime = 0;
@@ -21,6 +23,25 @@ public class AudioController : MonoBehaviour
             yield return null;
         }
         yield break;
+    }
+
+    public static IEnumerator StartPitchSine(AudioSource audioSource, float targetMultiplier)
+    {
+        bSineActive = true;
+        float currentTime = 0;
+        float start = audioSource.pitch;
+        while (bSineActive)
+        {
+            currentTime += Time.unscaledTime;
+            audioSource.pitch = Mathf.Lerp(start, 1.0f + Mathf.Sin(currentTime * 10f) * targetMultiplier, currentTime);
+            yield return null;
+        }
+        yield break;
+    }
+
+    private void StopPitchSine()
+    {
+        bSineActive = false;
     }
 
     public static IEnumerator StartPitchFade(AudioSource audioSource, float duration, float targetPitch)
@@ -43,10 +64,22 @@ public class AudioController : MonoBehaviour
         soundList.Add("Music_Ingame", new Sound(clip, 1f, 1f, sources[0]));
 
         clip = Resources.Load("Sounds/snake_move") as AudioClip;
-        soundList.Add("Sound_Snake_Move", new Sound(clip, 1f, 1f, sources[1]));
+        soundList.Add("Sound_Snake_Move", new Sound(clip, 0.5f, 1f, sources[1]));
+
+        clip = Resources.Load("Sounds/snake_move_ice") as AudioClip;
+        soundList.Add("Sound_Snake_Move_Ice", new Sound(clip, 1f, 1f, sources[1]));
+
+        clip = Resources.Load("Sounds/snake_move_water") as AudioClip;
+        soundList.Add("Sound_Snake_Move_Water", new Sound(clip, 1f, 1f, sources[1]));
+
+        clip = Resources.Load("Sounds/snake_fall") as AudioClip;
+        soundList.Add("Sound_Snake_Fall", new Sound(clip, 1f, 1f, sources[1]));
 
         clip = Resources.Load("Sounds/snake_turn") as AudioClip;
-        soundList.Add("Sound_Snake_Turn", new Sound(clip, 1f, 1f, sources[1]));
+        soundList.Add("Sound_Snake_Turn", new Sound(clip, 0.5f, 1f, sources[1]));
+
+        clip = Resources.Load("Sounds/teleport") as AudioClip;
+        soundList.Add("Sound_Portal", new Sound(clip, 1f, 1f, sources[2]));
 
         clip = Resources.Load("Sounds/apple_eat") as AudioClip;
         soundList.Add("Sound_Apple_Normal", new Sound(clip, 1f, 1f, sources[2]));
@@ -60,8 +93,11 @@ public class AudioController : MonoBehaviour
         clip = Resources.Load("Sounds/apple_golden_eat") as AudioClip;
         soundList.Add("Sound_Apple_Gold", new Sound(clip, 1f, 1f, sources[2]));
 
-        clip = Resources.Load("Sounds/apple_frozen_eat") as AudioClip;
+        clip = Resources.Load("Sounds/apple_ghost_eat") as AudioClip;
         soundList.Add("Sound_Apple_Ghost", new Sound(clip, 1f, 1f, sources[2]));
+
+        clip = Resources.Load("Sounds/apple_drunk_eat") as AudioClip;
+        soundList.Add("Sound_Apple_Drunk", new Sound(clip, 1f, 1f, sources[2]));
 
         clip = Resources.Load("Sounds/gameover") as AudioClip;
         soundList.Add("Sound_Menu_Gameover", new Sound(clip, 1f, 1f, sources[3]));
@@ -111,9 +147,25 @@ public class AudioController : MonoBehaviour
         sources[0].pitch = pitch;
     }
 
+    public void SetSoundPitch(float pitch, int src_n)
+    {
+        sources[src_n].pitch = pitch;
+    }
+
+    public void SetSoundVolume(float volume, int src_n)
+    {
+        sources[src_n].volume = volume;
+    }
+
     public void SetMusicPitchFade(float pitch, float duration)
     {
+        StopPitchSine();
         StartCoroutine(StartPitchFade(sources[0], duration, pitch));
+    }
+
+    public void SetMusicPitchSine(float pitch)
+    {
+        StartCoroutine(StartPitchSine(sources[0], pitch));
     }
 
     public void SetMusicDoppler(float doppler)

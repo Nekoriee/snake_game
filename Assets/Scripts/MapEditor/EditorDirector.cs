@@ -15,6 +15,7 @@ public class EditorDirector : MonoBehaviour
 
     public Camera mainCamera;
     [SerializeField] private TMPro.TextMeshProUGUI textHint;
+    [SerializeField] private TMPro.TextMeshProUGUI textTile;
     [SerializeField] private TMPro.TextMeshProUGUI modeHint;
     [SerializeField] private TMPro.TextMeshProUGUI textError;
     [SerializeField] private TextAsset tileInfoJson;
@@ -36,10 +37,111 @@ public class EditorDirector : MonoBehaviour
 
     Snake_Editor snakeFake;
     Snake_Editor snakeReal;
+    GameObject currentTileFrame;
 
     NoFood_Editor noFoodFake;
 
     int availableNoFoodTiles = cntTiles_H * cntTiles_V;
+
+    string levelPath = "";
+    string levelName = "MyLevel";
+    List<string> tileIDs = new List<string>();
+    int currentTileListID = 0;
+
+    private void UpdateTextMode()
+    {
+        switch (mode)
+        {
+            case EditorMode.tile:
+                textHint.text = "M - change mode | mouse/arrows - move | alt/rmb - rotate | space/lmb - place | tab - switch   tile";
+                modeHint.text = "mode: tile";
+                textTile.alpha = 0.6f;
+                break;
+            case EditorMode.spawn:
+                textHint.text = "M - change mode | mouse/arrows - move | alt/rmb - rotate | space/lmb - place";
+                modeHint.text = "mode: spawn";
+                textTile.alpha = 0;
+                break;
+            case EditorMode.trigger:
+                textHint.text = "M - change mode | mouse/arrows - move | space/lmb - place | delete - delete";
+                modeHint.text = "mode: nofood";
+                textTile.alpha = 0;
+                break;
+        }
+    }
+
+    private void UpdateTextTile()
+    {
+        if (mode == EditorMode.tile)
+        {
+            textTile.text = "Tile: " + currentTileId;
+        }
+    }
+
+    private void CreateLevelField()
+    {
+        if (levelPath != "" && File.Exists(levelPath))
+        {
+            System.IO.StreamReader reader = new System.IO.StreamReader(levelPath);
+            mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
+        }
+        if (mapInfo != null)
+        {
+            availableNoFoodTiles = cntTiles_H * cntTiles_V;
+            foreach (Tile_MapInfo tile in mapInfo.tiles)
+            {
+                Vector3 pos = new Vector3(tile.x, tile.y, 0);
+
+                Destroy(tiles[pos].gameObject);
+                tiles.Remove(pos);
+                tiles.Add(pos, new Tile_Editor(pos, tile.tileID, tile.rotation.eulerAngles, transform, this, prefabList["BaseTile"]));
+                if (tile.state == "nofood")
+                {
+                    tiles[pos].state = TileState.nofood;
+                    tilesTrigger.Add(pos, new NoFood_Editor(pos, this, prefabList["BaseSprite"]));
+                    availableNoFoodTiles--;
+                }
+                else
+                {
+                    tiles[pos].state = TileState.free;
+                    if (tilesTrigger.ContainsKey(pos))
+                    {
+                        Destroy(tilesTrigger[pos].gameObject);
+                        tilesTrigger.Remove(pos);
+                    }
+                }
+                
+            }
+            Heading heading = Heading.N;
+            switch (Mathf.RoundToInt(mapInfo.spawn.rotation))
+            {
+                case 0:
+                    heading = Heading.N;
+                    break;
+
+                case 90:
+                    heading = Heading.W;
+                    break;
+
+                case 180:
+                    heading = Heading.S;
+                    break;
+
+                case 270:
+                    heading = Heading.E;
+                    break;
+
+                default:
+                    break;
+            }
+            if (snakeReal != null)
+            {
+                Destroy(snakeReal.snake.gameObject);
+                snakeReal = null;
+            }
+            snakeReal = new Snake_Editor(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, this, prefabList["BaseSprite"]);
+        }
+    }
 
     public void SaveMap()
     {
@@ -66,11 +168,10 @@ public class EditorDirector : MonoBehaviour
             }
 
             string pathLevelFolder = Application.dataPath + "/Resources/Levels";
-            string pathLevel = StandaloneFileBrowser.SaveFilePanel("Save .wld file", pathLevelFolder, "MyLevel", "wld");
+            string pathLevel = StandaloneFileBrowser.SaveFilePanel("Save .wld file", pathLevelFolder, levelName, "wld");
             
             if (pathLevel != "")
             {
-                //mapInfo.map_name = Path.GetFileNameWithoutExtension(pathLevel);
                 mapInfo.map_name = "";
                 mapInfo.spawn = spawn;
                 mapInfo.tiles = tilesToSave;
@@ -82,6 +183,17 @@ public class EditorDirector : MonoBehaviour
             }
         }
         else textError.alpha = 0.52f;
+    }
+
+    private void OpenMap()
+    {
+        string pathLevelFolder = Application.dataPath + "/Resources/Levels";
+        string pathLevel = StandaloneFileBrowser.OpenFilePanel("Select .wld file", pathLevelFolder, "wld", false)[0];
+        if (pathLevel != "")
+        {
+            levelPath = pathLevel;
+            levelName = System.IO.Path.GetFileName(pathLevel);
+        }
     }
 
     private void CheckInput()
@@ -103,7 +215,6 @@ public class EditorDirector : MonoBehaviour
         {
             curPos = currentSelectedTile;
         } 
-            
 
         mousePrevPos = Input.mousePosition;
 
@@ -170,18 +281,18 @@ public class EditorDirector : MonoBehaviour
                         tiles.Remove(currentSelectedTile);
 
                         tiles.Add(currentSelectedTile, new Tile_Editor(currentSelectedTile, currentTileId, new Vector3(rotation, 270f, 90f), transform, this, prefabList["BaseTile"]));
-
-                        //availableNoFoodTiles = GetGroundTilesCount() / 2;
                     }
                     break;
 
                 case EditorMode.spawn:
                     if (snakeFake.CanBePlaced())
                     {
-                        if (snakeReal == null)
+                        if (snakeReal != null)
                         {
-                            snakeReal = new Snake_Editor(Vector3.zero, Heading.N, 3, this, prefabList["BaseSprite"]);
+                            Destroy(snakeReal.snake.gameObject);
+                            snakeReal = null;
                         }
+                        snakeReal = new Snake_Editor(Vector3.zero, Heading.N, 3, this, prefabList["BaseSprite"]);
                         snakeReal.snake.transform.position = snakeFake.snake.transform.position;
                         snakeReal.snake.transform.rotation = snakeFake.snake.transform.rotation;
                     }
@@ -199,22 +310,24 @@ public class EditorDirector : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) currentTileId = "grass";
-        if (Input.GetKeyDown(KeyCode.Alpha2)) currentTileId = "sand";
-        if (Input.GetKeyDown(KeyCode.Alpha3)) currentTileId = "water";
-        if (Input.GetKeyDown(KeyCode.Alpha4)) currentTileId = "g2s_s";
-        if (Input.GetKeyDown(KeyCode.Alpha5)) currentTileId = "g2s_ic";
-        if (Input.GetKeyDown(KeyCode.Alpha6)) currentTileId = "g2s_oc";
-        if (Input.GetKeyDown(KeyCode.Alpha7)) currentTileId = "s2w_s";
-        if (Input.GetKeyDown(KeyCode.Alpha8)) currentTileId = "s2w_ic";
-        if (Input.GetKeyDown(KeyCode.Alpha9)) currentTileId = "s2w_oc";
-        if (Input.GetKeyDown(KeyCode.Alpha0)) currentTileId = "grass_rock";
-        if (Input.GetKeyDown(KeyCode.Minus)) currentTileId = "sand_rock";
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            currentTileListID += 1;
+            if (currentTileListID >= tileIDs.Count) currentTileListID = 0;
+            currentTileId = tileIDs[currentTileListID];
+            UpdateTextTile();
+        }
 
-        if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "spawn";
-        if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "nofood";
+        //if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "spawn";
+        //if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "nofood";
 
-        if (Input.GetKeyDown(KeyCode.S)) SaveMap();
+        if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.LeftControl)) SaveMap();
+        if (Input.GetKey(KeyCode.O) && Input.GetKey(KeyCode.LeftControl))
+        {
+            OpenMap();
+            CreateLevelField();
+        }
+            
 
         if (Input.GetKeyDown(KeyCode.Delete) && mode == EditorMode.trigger) {
             if (tiles[currentSelectedTile].state == TileState.nofood)
@@ -241,22 +354,17 @@ public class EditorDirector : MonoBehaviour
                 case EditorMode.tile:
                     snakeFake.snake.SetActive(false);
                     noFoodFake.gameObject.SetActive(false);
-                    textHint.text = "M - change mode | mouse/arrows - move | alt/rmb - rotate | space/lmb - place | 1-0,minus - tiles";
-                    modeHint.text = "mode: tile";
                     break;
                 case EditorMode.spawn:
                     snakeFake.snake.SetActive(true);
                     noFoodFake.gameObject.SetActive(false);
-                    textHint.text = "M - change mode | mouse/arrows - move | alt/rmb - rotate | space/lmb - place";
-                    modeHint.text = "mode: spawn";
                     break;
                 case EditorMode.trigger:
                     snakeFake.snake.SetActive(false);
                     noFoodFake.gameObject.SetActive(true);
-                    textHint.text = "M - change mode | mouse/arrows - move | space/lmb - place | delete - delete";
-                    modeHint.text = "mode: nofood";
                     break;
             }
+            UpdateTextMode();
         }
 
         switch (mode)
@@ -276,8 +384,27 @@ public class EditorDirector : MonoBehaviour
                 noFoodFake.UpdateSprite(noFoodFake.CanBePlaced());
                 break;
         }
-        
-        
+
+        currentTileFrame.gameObject.transform.position = currentSelectedTile;
+
+        Debug.Log("Tile: " + currentTileId);
+
+    }
+
+    private void GetTileIDs()
+    {
+        if (tileInfo != null)
+        {
+            foreach (StaticTile_JSON tile in tileInfo.static_tiles)
+            {
+                tileIDs.Add(tile.id);
+            }
+            foreach (AnimatedTile_JSON tile in tileInfo.animated_tiles)
+            {
+                tileIDs.Add(tile.id);
+            }
+        }
+        currentTileId = tileIDs[0];
     }
 
     private void Awake()
@@ -288,6 +415,7 @@ public class EditorDirector : MonoBehaviour
         prefabList.Add("BaseTile", Resources.Load<Object>("Prefabs/Game/BaseTile"));
 
         tileInfo = JsonUtility.FromJson<TileInfo>(tileInfoJson.text);
+        GetTileIDs();
     }
 
     public int GetGroundTilesCount()
@@ -299,10 +427,8 @@ public class EditorDirector : MonoBehaviour
         return count;
     }
 
-    // Start is called before the first frame update
-    void Start()
+    private void CreateGrassField()
     {
-        Cursor.visible = true;
         for (int i = 0; i < cntTiles_V; i++)
         {
             for (int j = 0; j < cntTiles_H; j++)
@@ -311,7 +437,14 @@ public class EditorDirector : MonoBehaviour
                 tiles.Add(pos, new Tile_Editor(pos, "grass", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
             }
         }
+    }
 
+    // Start is called before the first frame update
+    void Start()
+    {
+        Cursor.visible = true;
+
+        CreateGrassField();
         snakeFake = new Snake_Editor(Vector3.zero, Heading.N, 3, this, prefabList["BaseSprite"]);
         snakeFake.snake.SetActive(false);
         snakeFake.snake.transform.rotation = Quaternion.Euler(0, 0, currentRotation);
@@ -319,8 +452,15 @@ public class EditorDirector : MonoBehaviour
         noFoodFake = new NoFood_Editor(Vector3.zero, this, prefabList["BaseSprite"]);
         noFoodFake.gameObject.SetActive(false);
 
+        currentTileFrame = GameObject.Instantiate(prefabList["BaseSprite"]) as GameObject;
+        currentTileFrame.gameObject.transform.position = currentSelectedTile;
+        currentTileFrame.gameObject.SetSortingLayer("Top");
+        currentTileFrame.gameObject.SetTextureOffset(new Vector2(0.4f, 0.2f));
+
         mousePrevPos = Input.mousePosition;
         textError.alpha = 0;
+        UpdateTextMode();
+        UpdateTextTile();
     }
 
     // Update is called once per frame

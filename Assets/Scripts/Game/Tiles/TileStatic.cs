@@ -6,7 +6,7 @@ public class TileStatic : Tile
 {
     private TileState state = TileState.free;
     private TileState curState = TileState.free;
-    private TileType type = TileType.ground;
+    private TileType type = TileType.nul;
     private FoodType foodType = FoodType.nofood;
     private GameDirector gameDirector;
     private GameObject gameObject;
@@ -23,24 +23,32 @@ public class TileStatic : Tile
         foodPrefab = gameDirector.GetPrefab("BaseSprite");
 
         this.state = state;
+        TileType typeOut;
 
         foreach (StaticTile_JSON tile in gameDirector.tileInfo.static_tiles)
         {
             if (tile.id == tileId)
             {
                 gameObject.SetTextureOffset(new Vector2(tile.x, tile.y));
-                if (!System.Enum.TryParse<TileType>(tile.type, out type)) type = TileType.ground;
+                if (!System.Enum.TryParse<TileType>(tile.type, out typeOut))
+                {
+                    type = TileType.ice;
+                }
+                else
+                {
+                    type = typeOut;
+                }
                 break;
             }
         }
     }
 
-    public override void SetTileState(TileState newState)
+    public override void SetTileCurState(TileState newState)
     {
         curState = newState;
     }
 
-    public override void RevertTileState()
+    public override void RevertTileCurState()
     {
         curState = state;
     }
@@ -50,7 +58,7 @@ public class TileStatic : Tile
         return curState;
     }
 
-    public override TileState GetTileState()
+    public override TileState GetTileBaseState()
     {
         return state;
     }
@@ -67,6 +75,10 @@ public class TileStatic : Tile
         foodObject.SetSortingLayer("Item");
         switch (type)
         {
+            case FoodType.drunk:
+                foodObject.SetTextureOffset(new Vector2(0.4f, 0));
+                SetFoodType(FoodType.drunk);
+                break;
             case FoodType.normal:
                 foodObject.SetTextureOffset(new Vector2(0, 0.4f));
                 SetFoodType(FoodType.normal);
@@ -93,6 +105,12 @@ public class TileStatic : Tile
 
     }
 
+    public override bool HasFood()
+    {
+        if (foodObject == null) return false;
+        else return true;
+    }
+
     public override void DeleteFood()
     {
         if (foodObject != null) Transform.Destroy(foodObject);
@@ -112,5 +130,10 @@ public class TileStatic : Tile
     public override IEnumerator PlayAnimation()
     {
         yield return null;
+    }
+
+    public override Quaternion GetTileRotation()
+    {
+        return gameObject.transform.rotation;
     }
 }

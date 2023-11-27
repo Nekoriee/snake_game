@@ -13,4 +13,22 @@ public static class Extensions
     {
         gameObject.GetComponent<Renderer>().material.SetTextureOffset("_MainTex", textureOffset);
     }
+
+    public static Quaternion HeadingToRotation(Heading heading)
+    {
+        switch (heading)
+        {
+            case Heading.N:
+                return Quaternion.Euler(90, 270, 90);
+            case Heading.E:
+                return Quaternion.Euler(0, 270, 90);
+            case Heading.S:
+                return Quaternion.Euler(-90, 270, 90);
+            case Heading.W:
+                return Quaternion.Euler(180, 270, 90);
+            default:
+                break;
+        }
+        return Quaternion.Euler(-1,-1,-1);
+    }
 }

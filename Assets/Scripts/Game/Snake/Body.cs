@@ -42,6 +42,10 @@ public class Body : SnakeBody
                 if (!isSubmerged) gameObject.SetTextureOffset(new Vector2(0, 0.6f));
                 else gameObject.SetTextureOffset(new Vector2(0f, 0f));
                 break;
+            case SnakeState.drunk:
+                if (!isSubmerged) gameObject.SetTextureOffset(new Vector2(0.2f, 0));
+                else gameObject.SetTextureOffset(new Vector2(0f, 0f));
+                break;
             case SnakeState.burn:
                 if (!isSubmerged) gameObject.SetTextureOffset(new Vector2(0.4f, 0.6f));
                 else gameObject.SetTextureOffset(new Vector2(0f, 0f));

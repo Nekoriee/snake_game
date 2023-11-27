@@ -18,7 +18,7 @@ public class GameDirector : MonoBehaviour
     [SerializeField] private TextAsset defaultLevelJson;
     public AudioController audioController;
 
-    const float snakeSpeed = 5f;
+    const float snakeSpeed = 4.5f;
     private Dictionary<string, float> foodChance = new Dictionary<string, float>();
 
     private int currentScore = 0;
@@ -41,7 +41,33 @@ public class GameDirector : MonoBehaviour
 
     private float controlLastMove;
 
-    private int GetLevelID(string levelPath)
+    private void SetSnakeState()
+    {
+        switch (prefsModifier)
+        {
+            case "chill":
+                snake.EatFood(FoodType.freeze);
+                break;
+            case "chili_pepper":
+                snake.EatFood(FoodType.burn);
+                break;
+            case "gold":
+                snake.EatFood(FoodType.golden);
+                break;
+            case "drunk":
+                snake.EatFood(FoodType.drunk);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public Quaternion GetTileRotation(Vector3 vTile)
+    {
+        return playField[vTile].GetTileRotation();
+    }
+
+    private int GetLevelIDFromPath(string levelPath)
     {
         System.IO.StreamReader reader = new System.IO.StreamReader(levelPath);
         string levelString = reader.ReadToEnd();
@@ -85,7 +111,7 @@ public class GameDirector : MonoBehaviour
         if (prefsLevelPath != "" && File.Exists(prefsLevelPath))
         {
             System.IO.StreamReader reader = new System.IO.StreamReader(prefsLevelPath);
-            levelID = GetLevelID(prefsLevelPath);
+            levelID = GetLevelIDFromPath(prefsLevelPath);
             mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
             if (mapInfo == null)
             {
@@ -142,61 +168,35 @@ public class GameDirector : MonoBehaviour
         snake.SetModifier(prefsModifier);
     }
 
-    //private void Create_DebugField()
-    //{
-    //    for (int i = 0; i < cntTiles_V; i++)
-    //    {
-    //        for (int j = 0; j < cntTiles_H; j++)
-    //        {
-    //            Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-    //            if (j < cntTiles_H/2) playField.Add(pos, new TileStatic(pos, "sand", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
-    //            else if (j == (int)(cntTiles_H / 2)) playField.Add(pos, new TileAnimated(pos, "s2w_s", new Vector3(180, 270f, 90f), transform, this, prefabList["BaseTile"]));
-    //            else playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
-    //            StartCoroutine(playField[pos].PlayAnimation());
-    //        }
-    //    }
-
-    //    snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
-
-    //    snake.SetSpeedMultiplier(1f);
-    //}
-
-    //private void Create_WaterField()
-    //{
-    //    for (int i = 0; i < cntTiles_V; i++)
-    //    {
-    //        for (int j = 0; j < cntTiles_H; j++)
-    //        {
-    //            Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-
-    //            playField.Add(pos, new TileAnimated(pos, "water", new Vector3(90f * Random.Range(0, 5), 270f, 90f), transform, this, prefabList["BaseTile"]));
-    //            StartCoroutine(playField[pos].PlayAnimation());
-    //        }
-    //    }
-
-    //    snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
-
-    //    snake.SetSpeedMultiplier(1f);
-    //}
-
-    private void Create_Default()
+    public List<Vector3> GetPortals(Vector3 posPortal)
     {
-        for (int i = 0; i < cntTiles_V; i++)
+        List<Vector3> availablePortals = new List<Vector3>();
+        for (int i = -9; i < 10; i++)
         {
-            for (int j = 0; j < cntTiles_H; j++)
+            for (int j = -8; j < 9; j++)
             {
-                Vector3 pos = new Vector3(j - cntTiles_H / 2, i - cntTiles_V / 2, 0);
-                playField.Add(pos, new TileStatic(pos, "grass", Quaternion.Euler(90f * Random.Range(0, 5), 270f, 90f), transform, TileState.free, this, prefabList["BaseTile"]));
+                Vector3 pos = new Vector3(i, j, 0);
+                if (GetTileType(pos) == TileType.portal && pos != posPortal)
+                {
+                    availablePortals.Add(new Vector3(i, j, 0));
+                }
             }
         }
-
-        snake = new Snake(new Vector3(0, 0, 0), snakeHeading, snakeSize, snakeSpeed, this);
-
-        snake.SetSpeedMultiplier(prefsSpeed);
-        snake.SetModifier(prefsModifier);
+        return availablePortals;
     }
 
-    public void ChangeGameState(GameState state)
+    public Vector3 GetRandomPortal(Vector3 portalEnter)
+    {
+        Vector3 portalPos = portalEnter;
+        List<Vector3> portals = GetPortals(portalEnter);
+        if (portals.Count > 0)
+        {
+            portalEnter = portals[Random.Range(0, portals.Count)];
+        }
+        return portalEnter;
+    }
+
+    public void SetGameState(GameState state)
     {
         gameState = state;
     }
@@ -213,22 +213,24 @@ public class GameDirector : MonoBehaviour
         {
             PlayerPrefs.SetInt(levelID.ToString() + prefsModifier, currentScore);
         }
-        ChangeGameState(GameState.gameover);
+        SetGameState(GameState.gameover);
         audioController.StopMusic();
         ui.StartGameOver();
     }
 
-    private void MoveSnake()
+    private bool MoveSnake()
     {
+        // if snake can't move
         if (!snake.Move())
         {
-            if (snake.GetState() != SnakeState.gold)
-            {
-                StopGame();
-            }
+            if (snake.GetState() != SnakeState.gold 
+                || GetTileType(snake.GetHeadPos()) == TileType.ice
+                || GetTileType(snake.GetHeadPos()) == TileType.cliff) StopGame();
             else
             {
                 Vector3 headPos = snake.GetHeadPos();
+                // the code below is used to check if there's at least one free tile around the snake's head
+                // while the snake is under the golden apple effect so the player won't stuck there forever
                 bool gameOver = true;
                 for (int i = (int)headPos.x - 1; i <= (int)headPos.x + 1; i++)
                 {
@@ -249,10 +251,16 @@ public class GameDirector : MonoBehaviour
                     StopGame();
                 }
             }
+            return false;
         }
-        else snakeHeadingBeforeMove = snake.GetHeading();
+        else
+        {
+            snakeHeadingBeforeMove = snake.GetHeading();
+            return true;
+        }
     }
 
+    // main gameplay cycle unless "Control" modifier is active
    IEnumerator Game()
     {
         CreateFood();
@@ -273,12 +281,18 @@ public class GameDirector : MonoBehaviour
         audioController.SetMusicPitch(1f);
         if (musicOn == true) audioController.PlayMusic();
         snakeHeadingBeforeMove = snake.GetHeading();
-        while (gameState != GameState.gameover && prefsModifier != "control")
+        controlLastMove = Time.time;
+        SetSnakeState();
+        while (gameState != GameState.gameover)
         {
             yield return new WaitForSeconds(1 / snake.GetSpeed());
-            MoveSnake();
+            if (prefsModifier != "control" 
+                || GetTileType(snake.GetHeadPos()) == TileType.ice
+                || GetTileType(snake.GetHeadPos()) == TileType.cliff)
+            {
+                if (MoveSnake()) controlLastMove = Time.time;
+            }
         }
-        controlLastMove = Time.time;
     }
 
     public void RestartGame()
@@ -311,7 +325,7 @@ public class GameDirector : MonoBehaviour
         if (bPause)
         {
             Time.timeScale = 0;
-            ChangeGameState(GameState.paused);
+            SetGameState(GameState.paused);
             audioController.SetMusicVolumeFade(0.25f, 0.5f);
             ui.StartPause();
         }
@@ -319,7 +333,7 @@ public class GameDirector : MonoBehaviour
         {
             Time.timeScale = 1;
             audioController.SetMusicVolumeFade(1f, 0.5f);
-            ChangeGameState(GameState.game);
+            SetGameState(GameState.game);
             ui.StopPause();
         }
     }
@@ -336,39 +350,94 @@ public class GameDirector : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.S)
+            if (GetTileType(snake.GetHeadPos()) != TileType.ice
+                && GetTileType(snake.GetHeadPos()) != TileType.cliff
+                || snake.GetState() == SnakeState.ghost
+                )
             {
-                snake.SetHeading(Heading.N);
-                if (prefsModifier == "control") MoveSnake();
-                controlLastMove = Time.time;
+                if (snake.GetState() != SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.S)
+                {
+                    snake.SetHeading(Heading.N);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
+                else if (snake.GetState() == SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.N) 
+                    {
+                    snake.SetHeading(Heading.S);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
             }
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.W)
+            if (GetTileType(snake.GetHeadPos()) != TileType.ice
+                && GetTileType(snake.GetHeadPos()) != TileType.cliff
+                || snake.GetState() == SnakeState.ghost
+                )
             {
-                snake.SetHeading(Heading.E);
-                if (prefsModifier == "control") MoveSnake();
-                controlLastMove = Time.time;
+                if (snake.GetState() != SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.W)
+                {
+                    snake.SetHeading(Heading.E);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
+                else if (snake.GetState() == SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.E)
+                {
+                    snake.SetHeading(Heading.W);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
             }
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.N)
+            if (GetTileType(snake.GetHeadPos()) != TileType.ice
+                && GetTileType(snake.GetHeadPos()) != TileType.cliff
+                || snake.GetState() == SnakeState.ghost
+                )
             {
-                snake.SetHeading(Heading.S);
-                if (prefsModifier == "control") MoveSnake();
-                controlLastMove = Time.time;
+                if (snake.GetState() != SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.N)
+                {
+                    snake.SetHeading(Heading.S);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
+                else if (snake.GetState() == SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.S)
+                {
+                    snake.SetHeading(Heading.N);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
             }
-                
         }
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            if (snakeHeadingBeforeMove != Heading.E)
+            if (GetTileType(snake.GetHeadPos()) != TileType.ice
+                && GetTileType(snake.GetHeadPos()) != TileType.cliff
+                || snake.GetState() == SnakeState.ghost
+                )
             {
-                snake.SetHeading(Heading.W);
-                if (prefsModifier == "control") MoveSnake();
-                controlLastMove = Time.time;
+                if (snake.GetState() != SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.E)
+                {
+                    snake.SetHeading(Heading.W);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
+                else if (snake.GetState() == SnakeState.drunk
+                    && snakeHeadingBeforeMove != Heading.W)
+                {
+                    snake.SetHeading(Heading.E);
+                    if (prefsModifier == "control") MoveSnake();
+                    controlLastMove = Time.time;
+                }
             }
         }
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Pause))
@@ -379,6 +448,7 @@ public class GameDirector : MonoBehaviour
         {
             ChangeMusicState();
         }
+        
     }
 
     private void CheckInputPause()
@@ -428,7 +498,7 @@ public class GameDirector : MonoBehaviour
     {
         if (playField.ContainsKey(tilePos))
         {
-            playField[tilePos].SetTileState(TileState.occupied);
+            playField[tilePos].SetTileCurState(TileState.occupied);
         }
     }
 
@@ -436,7 +506,7 @@ public class GameDirector : MonoBehaviour
     {
         foreach (Tile tile in playField.Values)
         {
-            tile.RevertTileState();
+            tile.RevertTileCurState();
         }
         snake.OccupyTiles();
     }
@@ -450,11 +520,11 @@ public class GameDirector : MonoBehaviour
         else return TileState.nul;
     }
 
-    public TileState GetTileState(Vector3 tilePos)
+    public TileState GetTileBaseState(Vector3 tilePos)
     {
         if (playField.ContainsKey(tilePos))
         {
-            return playField[tilePos].GetTileState();
+            return playField[tilePos].GetTileBaseState();
         }
         else return TileState.nul;
     }
@@ -467,8 +537,7 @@ public class GameDirector : MonoBehaviour
 
     public bool IsTileNoFood(Vector3 tilePos)
     {
-        //Debug.Log(tilePos.x + " " + tilePos.y + " " + GetTileState(tilePos).ToString());
-        if (GetTileState(tilePos) == TileState.nofood) return true;
+        if (GetTileBaseState(tilePos) == TileState.nofood) return true;
         else return false;
     }
 
@@ -505,7 +574,11 @@ public class GameDirector : MonoBehaviour
             for (int j = -8; j < 9; j++)
             {
                 Vector3 pos = new Vector3(i, j, 0);
-                if (!IsTileOccupied(pos) && !IsTileAWall(pos) && !IsTileNoFood(pos))
+                if (!IsTileOccupied(pos) 
+                    && !IsTileAWall(pos) 
+                    && !IsTileNoFood(pos) 
+                    && GetTileType(pos) != TileType.cliff
+                    && GetTileType(pos) != TileType.portal)
                 {
                     availableTiles.Add(new Vector3(i, j, 0));
                 }
@@ -518,7 +591,7 @@ public class GameDirector : MonoBehaviour
     {
         if (playField.ContainsKey(tilePos))
         {
-            if (playField[tilePos].GetTileCurState() == TileState.free && playField[tilePos].GetTileState() == TileState.free &&
+            if (playField[tilePos].GetTileCurState() == TileState.free && playField[tilePos].GetTileBaseState() == TileState.free &&
                 playField[tilePos].GetTileType() != TileType.wall && playField[tilePos].GetTileType() != TileType.nul) return true;
         }
         return false;
@@ -527,58 +600,49 @@ public class GameDirector : MonoBehaviour
     public void CreateFood()
     {
         List<Vector3> availableTiles = GetAvailableTiles();
-        if (availableTiles.Count > 0)
+        if (prefsModifier == "double" && availableTiles.Count > 1
+            || prefsModifier != "double" && availableTiles.Count > 0)
         {
-            Vector3 foodPos = availableTiles[Random.Range(0, availableTiles.Count)];
+            int count = 1;
+            if (prefsModifier == "double")
+            {
+                count = 2;
+            }
+            while (count > 0)
+            {
+                Vector3 foodPos = availableTiles[Random.Range(0, availableTiles.Count)];
+                while (playField[foodPos].HasFood())
+                {
+                    foodPos = availableTiles[Random.Range(0, availableTiles.Count)];
+                }
 
-            float random = Random.Range(0f, 1f);
-            if (random <= foodChance["ghost"])
-            {
-                playField[foodPos].CreateFood(FoodType.ghost);
+                float random = Random.Range(0f, 1f);
+                if (random <= foodChance["ghost"])
+                {
+                    playField[foodPos].CreateFood(FoodType.ghost);
+                }
+                else if (random > foodChance["ghost"] && random <= foodChance["gold"])
+                {
+                    playField[foodPos].CreateFood(FoodType.golden);
+                }
+                else if (random > foodChance["gold"] && random <= foodChance["freeze"])
+                {
+                    playField[foodPos].CreateFood(FoodType.freeze);
+                }
+                else if (random > foodChance["freeze"] && random <= foodChance["burn"])
+                {
+                    playField[foodPos].CreateFood(FoodType.burn);
+                }
+                else if (random > foodChance["burn"] && random <= foodChance["drunk"])
+                {
+                    playField[foodPos].CreateFood(FoodType.drunk);
+                }
+                else playField[foodPos].CreateFood(FoodType.normal);
+                count -= 1;
             }
-            else if (random > foodChance["ghost"] && random <= foodChance["gold"])
-            {
-                playField[foodPos].CreateFood(FoodType.golden);
-            }
-            else if (random > foodChance["gold"] && random <= foodChance["freeze"])
-            {
-                playField[foodPos].CreateFood(FoodType.freeze);
-            }
-            else if (random > foodChance["freeze"] && random <= foodChance["burn"])
-            {
-                playField[foodPos].CreateFood(FoodType.burn);
-            }
-            else playField[foodPos].CreateFood(FoodType.normal);
+            
         }
         else StopGame();
-    }
-
-    public void CreateFood_old()
-    {
-        Vector3 foodPos;
-        do
-        {
-            foodPos = new Vector3(Mathf.Round(Random.Range(-9, 10)), Mathf.Round(Random.Range(-8, 9)), 0);
-        } while (!CanCreateFood(foodPos));
-
-        float random = Random.Range(0f, 1f);
-        if (random <= foodChance["ghost"])
-        {
-            playField[foodPos].CreateFood(FoodType.ghost);
-        }
-        else if (random > foodChance["ghost"] && random <= foodChance["gold"])
-        {
-            playField[foodPos].CreateFood(FoodType.golden);
-        }
-        else if (random > foodChance["gold"] && random <= foodChance["freeze"])
-        {
-            playField[foodPos].CreateFood(FoodType.freeze);
-        }
-        else if (random > foodChance["freeze"] && random <= foodChance["burn"])
-        {
-            playField[foodPos].CreateFood(FoodType.burn);
-        }
-        else playField[foodPos].CreateFood(FoodType.normal);
     }
 
     public void DeleteFood(Vector3 tilePos)
@@ -588,6 +652,15 @@ public class GameDirector : MonoBehaviour
             playField[tilePos].DeleteFood();
             AddScore(1);
         }
+    }
+
+    public void DeleteAllFood()
+    {
+        foreach(KeyValuePair<Vector3, Tile> tile in playField)
+        {
+            tile.Value.DeleteFood();
+        }
+        AddScore(1);
     }
 
     private void CheckControlGameover()
@@ -642,15 +715,17 @@ public class GameDirector : MonoBehaviour
     public void SetFoodChances()
     {
         Dictionary<string, float> baseChance = new Dictionary<string, float>();
+        baseChance.Add("drunk", 0.55f); // 10%
         baseChance.Add("burn", 0.45f); // 15%
         baseChance.Add("freeze", 0.3f); // 15%
         baseChance.Add("gold", 0.15f); // 10%
         baseChance.Add("ghost", 0.05f); // 5%
-        // standard apple: 55% 
+        // standard apple: 45% 
 
         switch (prefsModifier)
         {
             case "classic":
+                foodChance.Add("drunk", -1f);
                 foodChance.Add("burn", -1f);
                 foodChance.Add("freeze", -1f);
                 foodChance.Add("gold", -1f);
@@ -658,24 +733,35 @@ public class GameDirector : MonoBehaviour
                 // standard apple: 100%
                 break;
             case "chill":
+                foodChance.Add("drunk", -1f);
                 foodChance.Add("burn", -1f);
                 foodChance.Add("freeze", 1f); // 100%
                 foodChance.Add("gold", -1f);
                 foodChance.Add("ghost", -1f);
                 break;
             case "chili_pepper":
+                foodChance.Add("drunk", -1f);
                 foodChance.Add("burn", 1f); // 100%
                 foodChance.Add("freeze", -1f);
                 foodChance.Add("gold", -1f);
                 foodChance.Add("ghost", -1f);
                 break;
             case "gold":
+                foodChance.Add("drunk", -1f);
                 foodChance.Add("burn", -1f);
                 foodChance.Add("freeze", -1f);
                 foodChance.Add("gold", 1f); // 100%
                 foodChance.Add("ghost", -1f);
                 break;
+            case "drunk":
+                foodChance.Add("drunk", 1f); // 100%
+                foodChance.Add("burn", -1f);
+                foodChance.Add("freeze", -1f);
+                foodChance.Add("gold", -1f);
+                foodChance.Add("ghost", -1f);
+                break;
             case "spaghetti":
+                foodChance.Add("drunk", baseChance["drunk"] - baseChance["ghost"]);
                 foodChance.Add("burn", baseChance["burn"] - baseChance["ghost"]);
                 foodChance.Add("freeze", baseChance["freeze"] - baseChance["ghost"]);
                 foodChance.Add("gold", baseChance["gold"] - baseChance["ghost"]);
@@ -686,6 +772,7 @@ public class GameDirector : MonoBehaviour
                 foodChance.Add("freeze", -1f);
                 foodChance.Add("gold", baseChance["gold"]);
                 foodChance.Add("ghost", baseChance["ghost"]);
+                foodChance.Add("drunk", baseChance["drunk"]);
                 break;
             default:
                 foodChance = baseChance;
@@ -710,6 +797,7 @@ public class GameDirector : MonoBehaviour
 
     void Start()
     {
+        
         Create_PlayField();
         Pause(false);
         StartCoroutine(Game());
