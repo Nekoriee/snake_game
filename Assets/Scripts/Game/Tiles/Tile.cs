@@ -15,6 +15,8 @@ public abstract class Tile
 
     public abstract TileType GetTileType();
 
+    public abstract string GetTileID();
+
     public abstract FoodType GetFoodType();
     public abstract void CreateFood(FoodType type);
 

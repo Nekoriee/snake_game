@@ -92,16 +92,16 @@ public class UIController : MonoBehaviour
                 modifierText.text = "modifier: Goldlike";
                 break;
             case "hungry":
-                modifierText.text = "modifier: Hungry";
+                modifierText.text = "modifier: No Growth";
                 break;
             case "spaghetti":
                 modifierText.text = "modifier: Spaghetti";
                 break;
             case "control":
-                modifierText.text = "modifier: Control";
+                modifierText.text = "modifier: Manual";
                 break;
             case "double":
-                modifierText.text = "modifier: Double";
+                modifierText.text = "modifier: Double Food";
                 break;
             default:
                 modifierText.text = "modifier: None";

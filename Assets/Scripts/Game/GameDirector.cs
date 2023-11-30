@@ -18,7 +18,7 @@ public class GameDirector : MonoBehaviour
     [SerializeField] private TextAsset defaultLevelJson;
     public AudioController audioController;
 
-    const float snakeSpeed = 4.5f;
+    const float snakeSpeed = 3.5f;
     private Dictionary<string, float> foodChance = new Dictionary<string, float>();
 
     private int currentScore = 0;
@@ -170,13 +170,16 @@ public class GameDirector : MonoBehaviour
 
     public List<Vector3> GetPortals(Vector3 posPortal)
     {
+        string portalID = GetTileID(posPortal);
         List<Vector3> availablePortals = new List<Vector3>();
         for (int i = -9; i < 10; i++)
         {
             for (int j = -8; j < 9; j++)
             {
                 Vector3 pos = new Vector3(i, j, 0);
-                if (GetTileType(pos) == TileType.portal && pos != posPortal)
+                if (GetTileType(pos) == TileType.portal 
+                    && pos != posPortal
+                    && GetTileID(pos) == portalID)
                 {
                     availablePortals.Add(new Vector3(i, j, 0));
                 }
@@ -231,21 +234,28 @@ public class GameDirector : MonoBehaviour
                 Vector3 headPos = snake.GetHeadPos();
                 // the code below is used to check if there's at least one free tile around the snake's head
                 // while the snake is under the golden apple effect so the player won't stuck there forever
-                bool gameOver = true;
-                for (int i = (int)headPos.x - 1; i <= (int)headPos.x + 1; i++)
-                {
-                    for (int j = (int)headPos.y - 1; j <= (int)headPos.y + 1; j++)
-                    {
-                        Vector3 tile = new Vector3(i, j, 0);
-                        if (!IsTileAWall(tile) && !IsTileOccupied(tile))
-                        {
-                            gameOver = false;
-                            break;
-                        }
-                    }
-                    if (!gameOver) break;
-                }
-                if (gameOver)
+                Vector3[] tilesAround = new Vector3[4];
+                tilesAround[0] = new Vector3((int)headPos.x - 1, headPos.y, 0);
+                tilesAround[1] = new Vector3((int)headPos.x + 1, headPos.y, 0);
+                tilesAround[2] = new Vector3(headPos.x, (int)headPos.y - 1, 0);
+                tilesAround[3] = new Vector3(headPos.x, (int)headPos.y + 1, 0);
+                //  left
+                if (!(!IsTileAWall(tilesAround[0]) && !IsTileOccupied(tilesAround[0]) 
+                    && GetTileType(tilesAround[0]) != TileType.portal
+                    && snake.CanGoThoughCliff(tilesAround[0], Heading.W)
+                    // right
+                    || !IsTileAWall(tilesAround[1]) && !IsTileOccupied(tilesAround[1]) 
+                    && GetTileType(tilesAround[1]) != TileType.portal
+                    && snake.CanGoThoughCliff(tilesAround[1], Heading.E)
+                    // down
+                    || !IsTileAWall(tilesAround[2]) && !IsTileOccupied(tilesAround[2]) 
+                    && GetTileType(tilesAround[2]) != TileType.portal
+                    && snake.CanGoThoughCliff(tilesAround[2], Heading.S)
+                    // up
+                    || !IsTileAWall(tilesAround[3]) && !IsTileOccupied(tilesAround[3]) 
+                    && GetTileType(tilesAround[3]) != TileType.portal
+                    && snake.CanGoThoughCliff(tilesAround[3], Heading.N)
+                    ))
                 {
                     audioController.PlaySound("Sound_Menu_Gameover");
                     StopGame();
@@ -286,6 +296,7 @@ public class GameDirector : MonoBehaviour
         while (gameState != GameState.gameover)
         {
             yield return new WaitForSeconds(1 / snake.GetSpeed());
+            
             if (prefsModifier != "control" 
                 || GetTileType(snake.GetHeadPos()) == TileType.ice
                 || GetTileType(snake.GetHeadPos()) == TileType.cliff)
@@ -548,6 +559,15 @@ public class GameDirector : MonoBehaviour
             return playField[tilePos].GetTileType();
         }
         else return TileType.nul;
+    }
+
+    public string GetTileID(Vector3 tilePos)
+    {
+        if (playField.ContainsKey(tilePos))
+        {
+            return playField[tilePos].GetTileID();
+        }
+        else return "";
     }
 
     public bool IsTileAWall(Vector3 tilePos)

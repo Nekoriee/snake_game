@@ -203,6 +203,70 @@ public class Snake
         return posNew;
     }
 
+    public bool CanGoThoughCliff(Vector3 tilePos, Heading heading)
+    {
+        Quaternion qHeading = Extensions.HeadingToRotation(heading);
+        TileType tileType = gameDirector.GetTileType(tilePos);
+        if (gameDirector.IsTileOccupied(tilePos)) return false;
+        switch (tileType)
+        {
+            case TileType.wall:
+            case TileType.portal:
+                return false;
+            case TileType.cliff:
+                return
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).x * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(qHeading.x * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).y * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(qHeading.y * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).z * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(qHeading.z * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).w * 10f) * 0.1f * -1
+            == Mathf.RoundToInt(qHeading.w * 10f) * 0.1f * -1
+            ||
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).x * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.x * 10f) * 0.1f
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).y * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.y * 10f) * 0.1f
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).z * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.z * 10f) * 0.1f
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).w * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.w * 10f) * 0.1f
+            ||
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).x * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.x * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).y * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.y * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).z * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.z * 10f) * 0.1f * -1
+            &&
+            Mathf.RoundToInt(gameDirector.GetTileRotation(tilePos).w * 10f) * 0.1f
+            == Mathf.RoundToInt(qHeading.w * 10f) * 0.1f * -1;
+            default:
+                return true;
+        };
+    }
+
+    private bool IsTileValid(Vector3 tilePos)
+    {
+        return !(tilePos.y > Mathf.Floor(gameDirector.GetTileCount_V() / 2)
+            || tilePos.y < -1 * Mathf.Floor(gameDirector.GetTileCount_V() / 2)
+            || tilePos.x < -1 * Mathf.Floor(gameDirector.GetTileCount_H() / 2)
+            || tilePos.x > Mathf.Floor(gameDirector.GetTileCount_H() / 2)
+            || gameDirector.GetTileCurState(tilePos) == TileState.occupied
+            || gameDirector.IsTileAWall(tilePos)
+            || !CanGoThoughCliff(tilePos, GetHeading())
+            );
+    }
+
     public bool Move()
     {
         Vector3 headPos = bodyList[0].GetPosition(); ;
@@ -214,46 +278,8 @@ public class Snake
             gameDirector.GetTileType(headPosNew) != TileType.portal)
             || state == SnakeState.ghost
             || gameDirector.GetTileType(headPosNew) == TileType.portal
-            || (gameDirector.GetTileType(headPosNew) == TileType.cliff 
-            && 
-            (
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).x * 10f) * 0.1f * -1
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).x * 10f) * 0.1f * -1
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).y * 10f) * 0.1f * -1
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).y * 10f) * 0.1f * -1
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).z * 10f) * 0.1f * -1
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).z * 10f) * 0.1f * -1
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).w * 10f) * 0.1f * -1
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).w * 10f) * 0.1f * -1
-            ||
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).x * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).x * 10f) * 0.1f
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).y * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).y * 10f) * 0.1f
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).z * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).z * 10f) * 0.1f
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).w * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).w * 10f) * 0.1f
-            ||
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).x * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).x * 10f) * 0.1f * -1
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).y * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).y * 10f) * 0.1f * -1
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).z * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).z * 10f) * 0.1f * -1
-            &&
-            Mathf.RoundToInt(gameDirector.GetTileRotation(headPosNew).w * 10f) * 0.1f
-            == Mathf.RoundToInt(Extensions.HeadingToRotation(GetHeading()).w * 10f) * 0.1f * -1
+            || CanGoThoughCliff(headPosNew, GetHeading())
             )
-            ))
         {
             if (gameDirector.GetTileType(headPosNew) == TileType.portal)
             {
@@ -264,6 +290,7 @@ public class Snake
                     gameDirector.audioController.PlaySound("Sound_Portal");
                 }
             }
+            if (!IsTileValid(headPosNew) && state != SnakeState.ghost) return false;
             if (state == SnakeState.ghost)
             {
                 switch (bodyList[0].GetHeading())
@@ -325,8 +352,6 @@ public class Snake
             {
                 gameDirector.audioController.PlaySound("Sound_Snake_Move");
             }
-            
-
             return true;
         }
         else

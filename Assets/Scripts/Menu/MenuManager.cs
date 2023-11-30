@@ -86,7 +86,12 @@ public class MenuManager : MonoBehaviour
     {
         if (PlayerPrefs.HasKey("Speed") && PlayerPrefs.GetFloat("Speed") > 0f) prefsSpeed = PlayerPrefs.GetFloat("Speed");
         else prefsSpeed = 1f;
-        if (PlayerPrefs.HasKey("Modifier")) prefsModifier = PlayerPrefs.GetString("Modifier");
+        if (PlayerPrefs.HasKey("Modifier"))
+        {
+            prefsModifier = PlayerPrefs.GetString("Modifier");
+            if (!modifierList.Contains(prefsModifier)) prefsModifier = "none";
+        }
+            
         else prefsModifier = "none";
     }
 
@@ -104,7 +109,7 @@ public class MenuManager : MonoBehaviour
         modifierList.Add("gold");
         modifierList.Add("drunk");
         modifierList.Add("hungry");
-        modifierList.Add("spaghetti");
+        //modifierList.Add("spaghetti");
         modifierList.Add("control");
         modifierList.Add("double");
     }
@@ -125,20 +130,20 @@ public class MenuManager : MonoBehaviour
             case "gold":
                 modifierText.text = "Goldlike";
                 break;
+            case "drunk":
+                modifierText.text = "Tipsy";
+                break;
             case "hungry":
-                modifierText.text = "Hungry";
+                modifierText.text = "No Growth";
                 break;
             case "spaghetti":
                 modifierText.text = "Spaghetti";
                 break;
             case "control":
-                modifierText.text = "Control";
+                modifierText.text = "Manual";
                 break;
             case "double":
-                modifierText.text = "Double";
-                break;
-            case "drunk":
-                modifierText.text = "Tipsy";
+                modifierText.text = "Double Food";
                 break;
             default:
                 modifierText.text = "None";
@@ -216,8 +221,8 @@ public class MenuManager : MonoBehaviour
 
     private void Awake()
     {
-        GetPlayerPrefs();
         FillLists();
+        GetPlayerPrefs();
         UpdateModifierText(prefsModifier);
         UpdateSpeedText(prefsSpeed);
         OpenOptions(false);

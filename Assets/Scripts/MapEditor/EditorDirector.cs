@@ -78,22 +78,40 @@ public class EditorDirector : MonoBehaviour
         }
     }
 
+    private void DestroyTiles()
+    {
+        foreach (Tile_Editor tile in tiles.Values)
+        {
+            Destroy(tile.gameObject);
+        }
+    }
+
+    private void DestroyTileTriggers()
+    {
+        foreach (NoFood_Editor tileTrigger in tilesTrigger.Values)
+        {
+            Destroy(tileTrigger.gameObject);
+        }
+    }
+
     private void CreateLevelField()
     {
         if (levelPath != "" && File.Exists(levelPath))
         {
             System.IO.StreamReader reader = new System.IO.StreamReader(levelPath);
             mapInfo = JsonUtility.FromJson<MapInfo>(reader.ReadToEnd());
+            reader.Close();
         }
         if (mapInfo != null)
         {
             availableNoFoodTiles = cntTiles_H * cntTiles_V;
+            DestroyTiles();
+            DestroyTileTriggers();
+            tiles = new Dictionary<Vector3, Tile_Editor>();
+            tilesTrigger = new Dictionary<Vector3, NoFood_Editor>();
             foreach (Tile_MapInfo tile in mapInfo.tiles)
             {
                 Vector3 pos = new Vector3(tile.x, tile.y, 0);
-
-                Destroy(tiles[pos].gameObject);
-                tiles.Remove(pos);
                 tiles.Add(pos, new Tile_Editor(pos, tile.tileID, tile.rotation.eulerAngles, transform, this, prefabList["BaseTile"]));
                 if (tile.state == "nofood")
                 {
@@ -104,11 +122,6 @@ public class EditorDirector : MonoBehaviour
                 else
                 {
                     tiles[pos].state = TileState.free;
-                    if (tilesTrigger.ContainsKey(pos))
-                    {
-                        Destroy(tilesTrigger[pos].gameObject);
-                        tilesTrigger.Remove(pos);
-                    }
                 }
                 
             }
@@ -140,6 +153,7 @@ public class EditorDirector : MonoBehaviour
                 snakeReal = null;
             }
             snakeReal = new Snake_Editor(new Vector3(mapInfo.spawn.x, mapInfo.spawn.y, 0), heading, 3, this, prefabList["BaseSprite"]);
+            spawn = mapInfo.spawn;
         }
     }
 
@@ -148,9 +162,7 @@ public class EditorDirector : MonoBehaviour
         if (snakeReal != null)
         {
             textError.alpha = 0f;
-            spawn.x = snakeReal.snake.transform.position.x;
-            spawn.y = snakeReal.snake.transform.position.y;
-            spawn.rotation = snakeReal.snake.transform.rotation.eulerAngles.z;
+            tilesToSave = new List<Tile_MapInfo>();
 
             for (int i = 0; i < cntTiles_V; i++)
             {
@@ -188,11 +200,12 @@ public class EditorDirector : MonoBehaviour
     private void OpenMap()
     {
         string pathLevelFolder = Application.dataPath + "/Resources/Levels";
-        string pathLevel = StandaloneFileBrowser.OpenFilePanel("Select .wld file", pathLevelFolder, "wld", false)[0];
-        if (pathLevel != "")
+        string[] pathLevel = StandaloneFileBrowser.OpenFilePanel("Select .wld file", pathLevelFolder, "wld", false);
+        if (pathLevel.Length > 0 && pathLevel[0] != "")
         {
-            levelPath = pathLevel;
-            levelName = System.IO.Path.GetFileName(pathLevel);
+            levelPath = pathLevel[0];
+            levelName = System.IO.Path.GetFileName(pathLevel[0]);
+            CreateLevelField();
         }
     }
 
@@ -274,7 +287,11 @@ public class EditorDirector : MonoBehaviour
                     if (canBePlaced)
                     {
                         float rotation;
-                        if (currentTileId != "grass" && currentTileId != "sand" && currentTileId != "water") rotation = currentRotation;
+                        if (currentTileId != "grass" 
+                            && currentTileId != "sand" 
+                            && currentTileId != "water"
+                            && currentTileId != "snow"
+                            && currentTileId != "ice") rotation = currentRotation;
                         else rotation = 90f * Random.Range(0, 5);
 
                         Destroy(tiles[currentSelectedTile].gameObject);
@@ -295,6 +312,9 @@ public class EditorDirector : MonoBehaviour
                         snakeReal = new Snake_Editor(Vector3.zero, Heading.N, 3, this, prefabList["BaseSprite"]);
                         snakeReal.snake.transform.position = snakeFake.snake.transform.position;
                         snakeReal.snake.transform.rotation = snakeFake.snake.transform.rotation;
+                        spawn.x = snakeReal.snake.transform.position.x;
+                        spawn.y = snakeReal.snake.transform.position.y;
+                        spawn.rotation = snakeReal.snake.transform.rotation.eulerAngles.z;
                     }
 
                     break;
@@ -310,7 +330,7 @@ public class EditorDirector : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Tab))
+        if (Input.GetKeyDown(KeyCode.Tab) && mode == EditorMode.tile)
         {
             currentTileListID += 1;
             if (currentTileListID >= tileIDs.Count) currentTileListID = 0;
@@ -321,13 +341,22 @@ public class EditorDirector : MonoBehaviour
         //if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "spawn";
         //if (Input.GetKeyDown(KeyCode.Z)) currentTileId = "nofood";
 
+
+
+#if UNITY_EDITOR
+        if (Input.GetKey(KeyCode.S)) SaveMap();
+        if (Input.GetKey(KeyCode.O))
+        {
+            OpenMap();
+        }
+#else
         if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.LeftControl)) SaveMap();
         if (Input.GetKey(KeyCode.O) && Input.GetKey(KeyCode.LeftControl))
         {
             OpenMap();
-            CreateLevelField();
         }
-            
+#endif
+
 
         if (Input.GetKeyDown(KeyCode.Delete) && mode == EditorMode.trigger) {
             if (tiles[currentSelectedTile].state == TileState.nofood)

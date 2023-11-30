@@ -8,6 +8,7 @@ public class TileAnimated : Tile
     private TileState curState = TileState.free;
     private TileType type = TileType.ground;
     private FoodType foodType = FoodType.nofood;
+    private string tileID;
     private GameDirector gameDirector;
     private GameObject gameObject;
     private GameObject foodObject;
@@ -24,7 +25,7 @@ public class TileAnimated : Tile
         gameObject.transform.parent = parent;
         this.gameDirector = gameDirector;
         foodPrefab = gameDirector.GetPrefab("BaseSprite");
-
+        this.tileID = tileId;
         this.state = state;
 
         foreach (AnimatedTile_JSON tile in gameDirector.tileInfo.animated_tiles)
@@ -77,6 +78,11 @@ public class TileAnimated : Tile
     public override TileType GetTileType()
     {
         return type;
+    }
+
+    public override string GetTileID()
+    {
+        return tileID;
     }
 
     public override void CreateFood(FoodType type)
