@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SFB;
@@ -39,6 +40,7 @@ public class MenuManager : MonoBehaviour
     public void SelectLevel()
     {
         string pathLevelFolder = Application.dataPath + "/Resources/Levels";
+        if (!Directory.Exists(pathLevelFolder)) Directory.CreateDirectory(pathLevelFolder);
         string pathLevel = StandaloneFileBrowser.OpenFilePanel("Select .wld file", pathLevelFolder, "wld", false)[0];
         if (pathLevel != "")
         {
@@ -64,9 +66,10 @@ public class MenuManager : MonoBehaviour
         {
             musicOn = (PlayerPrefs.GetInt("Music") > 0) ? true : false;
         }
+		else musicOn = true;
         if (musicOn == true)
         {
-            audioController.PlayMusic();
+            audioController.PlayRandomMusic("Menu");
             musicText.SetText("music: on");
         }
         else musicText.SetText("music: off");
@@ -213,7 +216,7 @@ public class MenuManager : MonoBehaviour
         prefsSpeed = 1f;
         musicOn = true;
         PlayerPrefs.SetInt("Music", 1);
-        audioController.PlayMusic();
+        audioController.PlayRandomMusic("Menu");
         musicText.SetText("music: on");
         UpdateModifierText(prefsModifier);
         UpdateSpeedText(prefsSpeed);
@@ -237,7 +240,7 @@ public class MenuManager : MonoBehaviour
             PlayerPrefs.SetInt("Music", musicOn ? 1 : 0);
             if (musicOn == true)
             {
-                audioController.PlayMusic();
+                audioController.PlayRandomMusic("Menu");
                 musicText.SetText("music: on");
             }
             else

@@ -1773,7 +1773,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Snake-Game
+  m_text: Snake-Maker
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8ca6d7230d3b1ef4ab8ecb7e18feaee8, type: 2}
   m_sharedMaterial: {fileID: -3928310193380310703, guid: 8ca6d7230d3b1ef4ab8ecb7e18feaee8, type: 2}

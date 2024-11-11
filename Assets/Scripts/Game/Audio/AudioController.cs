@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public class AudioController : MonoBehaviour
 {
@@ -12,6 +14,69 @@ public class AudioController : MonoBehaviour
     [SerializeField] public Dictionary<string, Sound> soundList = new Dictionary<string, Sound>();
 
     private static bool bSineActive = false;
+
+    static List<AudioClip> musicListGame;
+    static List<AudioClip> musicListMenu;
+    static List<string> musicNamesGame;
+    static List<string> musicNamesMenu;
+    static int musicCurGame = 0;
+    static int musicCurMenu = 0;
+
+    private void GetMusicFiles()
+    {
+        if (musicListGame == null || musicListGame.Count <= 0)
+        {
+            musicListGame = new List<AudioClip>();
+            string pathGame = Application.dataPath + "/Resources/Music/Game";
+            if (!Directory.Exists(pathGame)) Directory.CreateDirectory(pathGame);
+            DirectoryInfo directoryInfo = new DirectoryInfo(Application.dataPath + "/Resources/Music/Game");
+            FileInfo[] songFiles = directoryInfo.GetFiles("*.wav");
+            foreach (FileInfo songFile in songFiles)
+            {
+                StartCoroutine(ConvertAudioClip(songFile, "game"));
+            }
+        }
+        if (musicListMenu == null || musicListMenu.Count <= 0)
+        {
+            musicListMenu = new List<AudioClip>();
+            string pathMenu = Application.dataPath + "/Resources/Music/Menu";
+            if (!Directory.Exists(pathMenu)) Directory.CreateDirectory(pathMenu);
+            DirectoryInfo directoryInfo = new DirectoryInfo(Application.dataPath + "/Resources/Music/Menu");
+            FileInfo[] songFiles = directoryInfo.GetFiles("*.wav");
+            foreach (FileInfo songFile in songFiles)
+            {
+                StartCoroutine(ConvertAudioClip(songFile, "menu"));
+            }
+        }
+    }
+
+    private IEnumerator ConvertAudioClip(FileInfo songFile, string musicType)
+    {
+        Debug.Log("Music: " + songFile.Name);
+        if (songFile.Name.Contains("meta"))
+            yield break;
+        else
+        {
+            string songName = songFile.FullName.ToString();
+            string url = string.Format("file://{0}", songName);
+            Debug.Log("Music URL: " + url);
+            using (UnityWebRequest web = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.WAV))
+            {
+                yield return web.SendWebRequest();
+                if (!web.isNetworkError && !web.isHttpError)
+                {
+                    var clip = DownloadHandlerAudioClip.GetContent(web);
+                    if (clip != null)
+                    {
+                        Debug.Log(songFile + " added to " + musicType);
+                        if (musicType == "menu") musicListMenu.Add(clip);
+                        else musicListGame.Add(clip);
+                    }
+                }
+            }
+        }
+    }
+
     public static IEnumerator StartVolumeFade(AudioSource audioSource, float duration, float targetVolume)
     {
         float currentTime = 0;
@@ -60,10 +125,9 @@ public class AudioController : MonoBehaviour
     void Awake()
     {
 
-        AudioClip clip = Resources.Load("Music/ingame_music") as AudioClip;
-        soundList.Add("Music_Ingame", new Sound(clip, 1f, 1f, sources[0]));
+        GetMusicFiles();
 
-        clip = Resources.Load("Sounds/snake_move") as AudioClip;
+        AudioClip clip = Resources.Load("Sounds/snake_move") as AudioClip;
         soundList.Add("Sound_Snake_Move", new Sound(clip, 0.5f, 1f, sources[1]));
 
         clip = Resources.Load("Sounds/snake_move_ice") as AudioClip;
@@ -101,6 +165,8 @@ public class AudioController : MonoBehaviour
 
         clip = Resources.Load("Sounds/gameover") as AudioClip;
         soundList.Add("Sound_Menu_Gameover", new Sound(clip, 1f, 1f, sources[3]));
+
+        SetRandomMusic();
     }
 
     public void PlaySound(string soundIdentifier)
@@ -116,15 +182,63 @@ public class AudioController : MonoBehaviour
         AudioClip clip = Resources.Load("Music/" + filename) as AudioClip;
         soundList.Add("Music_Ingame", new Sound(clip, 1f, 1f, sources[0]));
     }
+	
+	private void SetNextMusicIndex() 
+	{
+		musicCurGame += 1;
+		if (musicCurGame > musicListGame.Count-1) musicCurGame = 0;
+		musicCurMenu += 1;
+		if (musicCurMenu > musicListMenu.Count-1) musicCurMenu = 0;
+	}
+
+    public void SetRandomMusic()
+    {
+        AudioClip clip;
+        if (soundList.ContainsKey("Music_Ingame")) soundList.Remove("Music_Ingame");
+        if (soundList.ContainsKey("Music_Menu")) soundList.Remove("Music_Menu");
+		SetNextMusicIndex();
+        if (musicListGame != null && musicListGame.Count > 0)
+        {
+
+            soundList.Add("Music_Ingame", new Sound(musicListGame[musicCurGame], 1f, 1f, sources[0]));
+            Debug.LogWarning("Loaded custom game music!");
+        }
+        else
+        {
+			Debug.Log("Using default ingame music...");
+            clip = Resources.Load("Music/ingame_music") as AudioClip;
+            soundList.Add("Music_Ingame", new Sound(clip, 1f, 1f, sources[0]));
+        }
+
+        if (musicListMenu != null && musicListMenu.Count > 0)
+        {
+            soundList.Add("Music_Menu", new Sound(musicListMenu[musicCurMenu], 1f, 1f, sources[0]));
+            Debug.LogWarning("Loaded custom menu music!");
+        }
+        else
+        {
+			Debug.Log("Using default menu music...");
+            clip = Resources.Load("Music/menu_music") as AudioClip;
+            soundList.Add("Music_Menu", new Sound(clip, 1f, 1f, sources[0]));
+        }
+    }
 
     public void PauseMusic()
     {
         sources[0].Pause();
     }
 
-    public void PlayMusic()
+    public void PlayMusic(string type)
     {
-        sources[0].Play();
+		if (type == "Game") soundList["Music_Ingame"].PlayLooping();
+		else soundList["Music_Menu"].PlayLooping();
+    }
+	
+	public void PlayRandomMusic(string type)
+    {
+		SetRandomMusic();
+		PlayMusic(type);
+		
     }
 
     public void StopMusic()

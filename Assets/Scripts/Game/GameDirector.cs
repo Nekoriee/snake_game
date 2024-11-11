@@ -289,7 +289,7 @@ public class GameDirector : MonoBehaviour
         }
         ui.UpdateMusicText(musicOn);
         audioController.SetMusicPitch(1f);
-        if (musicOn == true) audioController.PlayMusic();
+        if (musicOn == true) audioController.PlayRandomMusic("Game");
         snakeHeadingBeforeMove = snake.GetHeading();
         controlLastMove = Time.time;
         SetSnakeState();
@@ -353,7 +353,8 @@ public class GameDirector : MonoBehaviour
     {
         musicOn = !musicOn;
         PlayerPrefs.SetInt("Music", musicOn ? 1 : 0);
-        if (musicOn == true && GetGameState() != GameState.gameover) audioController.PlayMusic(); else audioController.StopMusic();
+        if (musicOn == true && GetGameState() != GameState.gameover) audioController.PlayRandomMusic("Game");
+		else audioController.StopMusic();
         ui.UpdateMusicText(musicOn);
     }
 

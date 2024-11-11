@@ -30,6 +30,14 @@ public class Sound
         source.PlayOneShot(clip);
     }
 
+    public void PlayLooping()
+    {
+        source.Stop();
+        source.loop = true;
+        source.clip = clip;
+        source.Play();
+    }
+
     public void Pause()
     {
         source.Pause();

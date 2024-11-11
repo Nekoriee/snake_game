@@ -27,7 +27,7 @@ public class UIController : MonoBehaviour
 
     public void UpdateGoalScore(string score)
     {
-        goalScore.text = "Record: " + score;
+        goalScore.text = "Best: " + score;
     }
 
     private void Awake()
